@@ -128,10 +128,12 @@ void runProcessing(std::string name, std::vector<double> &out) {
     }
 
     // Only using 5 seconds (audio is 48,000KHz)
+    // Half the vector has to be filled with zeroes.
     out = audio.samples[0];
-    // Not sure if half the vector actually has to be filled with zeroes??
-    int n = 48000 * 5;
+    int n = 48000 * 5 * 2;
     out.resize(n);
+    for (int i = n/2; i < n; ++i)
+        out.push_back(0);
 }
 
 
