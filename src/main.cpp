@@ -38,16 +38,32 @@ inline double getMagnitude(double r, double i) {
 }
 
 
+// Concurrent implementation of the Fast Fourier Transform using FFTW.
 void fft(std::vector<double> &in, fftw_complex *out) {
-    fftw_plan p = fftw_plan_dft_r2c_1d(in.size(), &in[0], out, FFTW_ESTIMATE);
+    fftw_plan p;
+    { std::unique_lock<std::mutex> lock(GLOBAL_MUTEX);
+        p = fftw_plan_dft_r2c_1d(in.size(), &in[0], out, FFTW_ESTIMATE);
+    }
+
     fftw_execute(p);
-    fftw_destroy_plan(p);
+
+    { std::unique_lock<std::mutex> lock(GLOBAL_MUTEX);
+        fftw_destroy_plan(p);
+    }
 }
 
+// Concurrent implementation of the Fast Fourier Transform using FFTW.
 void ifft(fftw_complex *in, double out[], size_t length) {
-    fftw_plan p = fftw_plan_dft_c2r_1d(length, in, out, FFTW_ESTIMATE);
+    fftw_plan p;
+    { std::unique_lock<std::mutex> lock(GLOBAL_MUTEX);
+        p = fftw_plan_dft_c2r_1d(length, in, out, FFTW_ESTIMATE);
+    }
+
     fftw_execute(p);
-    fftw_destroy_plan(p);
+
+    { std::unique_lock<std::mutex> lock(GLOBAL_MUTEX);
+        fftw_destroy_plan(p);
+    }
 }
 
 
@@ -61,8 +77,8 @@ void ifft(fftw_complex *in, double out[], size_t length) {
 // length 2N-1. This is needed to calculate the circular cross-correlation
 // rather than the regular cross-correlation.
 //
-// TODO: Run FFTs concurrently
 // TODO: Check https://dsp.stackexchange.com/questions/9797/cross-correlation-peak
+// TODO: Check NULL malloc and etc.
 //
 // Returns the delay in milliseconds the second data set has over the first
 // one, with a confidence between 0 and 1.
@@ -73,8 +89,11 @@ int crossCorrelation(std::vector<double> &data1, std::vector<double> &data2, siz
     out1 = (fftw_complex *) fftw_malloc(sizeof(fftw_complex) * ((length/2)+1));
     fftw_complex *out2;
     out2 = (fftw_complex *) fftw_malloc(sizeof(fftw_complex) * ((length/2)+1));
-    fft(data1, out1);
-    fft(data2, out2);
+
+    std::thread fft1(&fft, std::ref(data1), std::ref(out1));
+    std::thread fft2(&fft, std::ref(data2), std::ref(out2));
+    fft1.join();
+    fft2.join();
 
     // Product of fft1 * mag(fft2) where fft1 is complex and mag(fft2) is real.
     // The ouputs are saved in a fftw complex array, where the index 0 is the real
@@ -89,8 +108,6 @@ int crossCorrelation(std::vector<double> &data1, std::vector<double> &data2, siz
     }
     double *results;
     results = (double *) fftw_malloc(sizeof(fftw_complex) * length);
-    // Obtaining the correlation:
-    //     corr(a, b) = ifft(fft(a) * conj(fft(b)))
     ifft(in, results, length);
     free(out1);
     free(out2);
