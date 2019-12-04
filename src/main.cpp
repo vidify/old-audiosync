@@ -11,8 +11,8 @@
 // the recorded song.
 
 #include <iostream>
+#include <vector>
 #include <math.h>
-#include <algorithm>
 #include <mutex>
 #include <thread>
 #include <fftw3.h>
@@ -30,8 +30,6 @@ namespace plt = matplotlibcpp;
 
 // Global mutex used in multithreading.
 std::mutex GLOBAL_MUTEX;
-// The size of each time interval in which the FFT is ran.
-static constexpr size_t BIN_SIZE = 1024;
 
 
 // Calculating the magnitude of a complex number.
@@ -53,9 +51,22 @@ void ifft(fftw_complex *in, double out[], size_t length) {
 }
 
 
-// Returns the delay the second data set has over the first one, with a confidence
-// between 0 and 1. Both data sets should have the same size.
-int match(std::vector<double> &data1, std::vector<double> &data2, size_t length, double &confidence) {
+// Calculating the cross-correlation between two signals `a` and `b`:
+//     xcross = ifft(fft(a) * magn(fft(b)))
+// And where magn() is the magnitude of the complex numbers returned by the
+// fft. Instead of magn(), a reverse() function could be used. But the
+// magnitude seems easier to calculate for now.
+//
+// Both datasets should have the same size. They should be zero-padded to
+// length 2N-1. This is needed to calculate the circular cross-correlation
+// rather than the regular cross-correlation.
+//
+// TODO: Run FFTs concurrently
+// TODO: Check https://dsp.stackexchange.com/questions/9797/cross-correlation-peak
+//
+// Returns the delay in milliseconds the second data set has over the first
+// one, with a confidence between 0 and 1.
+int crossCorrelation(std::vector<double> &data1, std::vector<double> &data2, size_t length, double &confidence) {
     // Getting the complex results from both FFT. The output length for the
     // complex numbers is n/2+1.
     fftw_complex *out1;
@@ -113,11 +124,6 @@ int match(std::vector<double> &data1, std::vector<double> &data2, size_t length,
 // the file to process, and returns a vector with the normalized maximum
 // frequency throughout the track.
 void runProcessing(std::string name, std::vector<double> &out) {
-#ifdef DEBUG
-    // Timers in debug mode
-    std::clock_t start = std::clock();
-#endif
-
     // Loading the WAV file
     AudioFile<double> audio;
     audio.load(name);
@@ -143,6 +149,11 @@ int main(int argc, char *argv[]) {
         exit(1);
     }
 
+#ifdef DEBUG
+    // Timers in debug mode
+    std::clock_t start = std::clock();
+#endif
+
     // Processing both files with multi-threading.
     int delay;
     double confidence;
@@ -153,26 +164,25 @@ int main(int argc, char *argv[]) {
     t1.join();
     t2.join();
 
-
 #ifdef DEBUG
+    double duration = (std::clock() - start) / (double) CLOCKS_PER_SEC;
+    std::cout << "Loading WAVs took " + std::to_string(duration) + "s \n";
+
     // Benchmarking the matchinv function
-    std::clock_t start = std::clock();
+    start = std::clock();
     std::vector<double> old1(out1);
     std::vector<double> old2(out2);
 #endif
 
-    delay = match(out1, out2, out1.size(), confidence);
+    delay = crossCorrelation(out1, out2, out1.size(), confidence);
 
 #ifdef DEBUG
-    double duration = (std::clock() - start) / (double) CLOCKS_PER_SEC;
+    duration = (std::clock() - start) / (double) CLOCKS_PER_SEC;
     std::cout << "Matching took " + std::to_string(duration) + "s \n";;
-#endif
-
-#ifdef DEBUG
     if (delay < 0) {
-        // old2.erase(old2.begin(), old2.size() > delay ?  old2.begin() + delay : old2.end());
+        old1.erase(old1.begin(), old1.size() > delay ?  old1.begin() + delay : old1.end());
     } else {
-        // old1.erase(old1.begin(), old1.size() > delay ?  old1.begin() + delay : old1.end());
+        old2.erase(old2.begin(), old2.size() > delay ?  old2.begin() + delay : old2.end());
     }
     plt::plot(old1);
     plt::plot(old2);
