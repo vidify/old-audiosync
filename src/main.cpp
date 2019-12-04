@@ -1,14 +1,16 @@
-// AudioSync is the audio synchronization feature made for spotivids. It is
-// inspired by Allison Deal's VideoSync, but much faster.
-// (https://github.com/allisonnicoledeal/VideoSync)
-//
-// This module is in C++ mainly because of speed. FFTW is the fastest Fourier
-// Transformation library. Python threading can also be not real concurrency
-// because of the GIL.
+// AudioSync is the audio synchronization feature made for spotivids.
 //
 // The objective of the module is to obtain the delay between two audio files.
-// In its usage, one of them will be the YouTube downloaded video and another
-// the recorded song.
+// In its real usage, one of them will be the YouTube downloaded video and
+// another the recorded song.
+//
+// The math behind it is a circular cross-correlation by using Fast Fourier
+// Transforms. The output should be somewhat similar to Numpy's
+// correlate(data1, data2, "full").
+//
+// This module is in C mainly because of speed. FFTW is the fastest Fourier
+// Transformation library, and Python threading can be tricky because of the
+// GIL.
 
 #include <iostream>
 #include <vector>
@@ -24,6 +26,8 @@
 namespace plt = matplotlibcpp;
 #endif
 
+
+// fftw_complex indexes for clarification.
 #define REAL 0
 #define IMAG 1
 
@@ -52,18 +56,12 @@ void fft(std::vector<double> &in, fftw_complex *out) {
     }
 }
 
-// Concurrent implementation of the Inverse Fast Fourier Transform using FFTW.
-void ifft(fftw_complex *in, double out[], size_t length) {
-    fftw_plan p;
-    { std::unique_lock<std::mutex> lock(GLOBAL_MUTEX);
-        p = fftw_plan_dft_c2r_1d(length, in, out, FFTW_ESTIMATE);
-    }
-
+// The Inverse Fast Fourier Transform using FFTW. This doesn't need to be
+// concurrent because it's calculated at the end.
+inline void ifft(fftw_complex *in, double out[], size_t length) {
+    fftw_plan p = fftw_plan_dft_c2r_1d(length, in, out, FFTW_ESTIMATE);
     fftw_execute(p);
-
-    { std::unique_lock<std::mutex> lock(GLOBAL_MUTEX);
-        fftw_destroy_plan(p);
-    }
+    fftw_destroy_plan(p);
 }
 
 
@@ -77,18 +75,16 @@ void ifft(fftw_complex *in, double out[], size_t length) {
 // length 2N-1. This is needed to calculate the circular cross-correlation
 // rather than the regular cross-correlation.
 //
-// TODO: Check NULL malloc and etc.
-// TODO: Get confidence level https://dsp.stackexchange.com/questions/9797/cross-correlation-peak
+// TODO: Check NULL mallocs and etc.
+// TODO: Get confidence level: https://dsp.stackexchange.com/questions/9797/cross-correlation-peak
 //
 // Returns the delay in milliseconds the second data set has over the first
 // one, with a confidence between 0 and 1.
 double crossCorrelation(std::vector<double> &data1, std::vector<double> &data2, size_t length, double &confidence) {
     // Getting the complex results from both FFT. The output length for the
     // complex numbers is n/2+1.
-    fftw_complex *out1;
-    out1 = (fftw_complex *) fftw_malloc(sizeof(fftw_complex) * ((length/2)+1));
-    fftw_complex *out2;
-    out2 = (fftw_complex *) fftw_malloc(sizeof(fftw_complex) * ((length/2)+1));
+    fftw_complex *out1 = fftw_alloc_complex((length / 2) + 1);
+    fftw_complex *out2 = fftw_alloc_complex((length / 2) + 1);
 
     std::thread fft1(&fft, std::ref(data1), std::ref(out1));
     std::thread fft2(&fft, std::ref(data2), std::ref(out2));
@@ -96,16 +92,14 @@ double crossCorrelation(std::vector<double> &data1, std::vector<double> &data2, 
     fft2.join();
 
     // Product of fft1 * mag(fft2) where fft1 is complex and mag(fft2) is real.
+    fftw_complex *in = fftw_alloc_complex(length);
     double magnitude;
-    fftw_complex *in;
-    in = (fftw_complex *) fftw_malloc(sizeof(fftw_complex) * length);
     for (size_t i = 0; i < (length/2)+1; ++i) {
         magnitude = getMagnitude(out2[i][REAL], out2[i][IMAG]);
         in[i][REAL] = out1[i][REAL] * magnitude;
         in[i][IMAG] = out1[i][IMAG] * magnitude;
     }
-    double *results;
-    results = (double *) fftw_malloc(sizeof(fftw_complex) * length);
+    double *results = fftw_alloc_real(length);
     ifft(in, results, length);
     confidence = results[0];
     int delay = 0;
@@ -122,15 +116,15 @@ double crossCorrelation(std::vector<double> &data1, std::vector<double> &data2, 
 #ifdef DEBUG
     plt::plot(std::vector<double>(results, results + length));
     plt::show();
-    std::cout << (delay * (1.0/48000.0)) << "s of delay" << std::endl;
+    std::cout << delay * 48.0 << "s of delay" << std::endl;
 #endif
 
-    free(out1);
-    free(out2);
-    free(in);
-    free(results);
+    fftw_free(out1);
+    fftw_free(out2);
+    fftw_free(in);
+    fftw_free(results);
 
-    // Conversion to milliseconds with 48,000KHz simplified
+    // Conversion to milliseconds with 48,000KHz (simplified)
     return delay / 48.0;
 }
 
@@ -181,7 +175,7 @@ int main(int argc, char *argv[]) {
     double duration = (std::clock() - start) / (double) CLOCKS_PER_SEC;
     std::cout << "Loading WAVs took " + std::to_string(duration) + "s \n";
 
-    // Benchmarking the matchinv function
+    // Benchmarking the matching function
     start = std::clock();
     std::vector<double> old1(out1);
     std::vector<double> old2(out2);
@@ -193,6 +187,8 @@ int main(int argc, char *argv[]) {
 #ifdef DEBUG
     duration = (std::clock() - start) / (double) CLOCKS_PER_SEC;
     std::cout << "Matching took " + std::to_string(duration) + "s \n";;
+
+    // Plotting the output
     double samplesDelay = delay * 48;
     if (samplesDelay < 0) {
         old1.erase(old1.begin(), old1.size() > samplesDelay ?  old1.begin() + samplesDelay : old1.end());
