@@ -52,7 +52,7 @@ void fft(std::vector<double> &in, fftw_complex *out) {
     }
 }
 
-// Concurrent implementation of the Fast Fourier Transform using FFTW.
+// Concurrent implementation of the Inverse Fast Fourier Transform using FFTW.
 void ifft(fftw_complex *in, double out[], size_t length) {
     fftw_plan p;
     { std::unique_lock<std::mutex> lock(GLOBAL_MUTEX);
@@ -77,12 +77,12 @@ void ifft(fftw_complex *in, double out[], size_t length) {
 // length 2N-1. This is needed to calculate the circular cross-correlation
 // rather than the regular cross-correlation.
 //
-// TODO: Check https://dsp.stackexchange.com/questions/9797/cross-correlation-peak
 // TODO: Check NULL malloc and etc.
+// TODO: Get confidence level https://dsp.stackexchange.com/questions/9797/cross-correlation-peak
 //
 // Returns the delay in milliseconds the second data set has over the first
 // one, with a confidence between 0 and 1.
-int crossCorrelation(std::vector<double> &data1, std::vector<double> &data2, size_t length, double &confidence) {
+double crossCorrelation(std::vector<double> &data1, std::vector<double> &data2, size_t length, double &confidence) {
     // Getting the complex results from both FFT. The output length for the
     // complex numbers is n/2+1.
     fftw_complex *out1;
@@ -96,8 +96,6 @@ int crossCorrelation(std::vector<double> &data1, std::vector<double> &data2, siz
     fft2.join();
 
     // Product of fft1 * mag(fft2) where fft1 is complex and mag(fft2) is real.
-    // The ouputs are saved in a fftw complex array, where the index 0 is the real
-    // number and the index 1 is the imaginary.
     double magnitude;
     fftw_complex *in;
     in = (fftw_complex *) fftw_malloc(sizeof(fftw_complex) * length);
@@ -109,14 +107,10 @@ int crossCorrelation(std::vector<double> &data1, std::vector<double> &data2, siz
     double *results;
     results = (double *) fftw_malloc(sizeof(fftw_complex) * length);
     ifft(in, results, length);
-    free(out1);
-    free(out2);
-    free(in);
-
     confidence = results[0];
     int delay = 0;
     for (size_t i = 1; i < length; ++i) {
-        if (results[i] > confidence) {
+        if (abs(results[i]) > confidence) {
             confidence = results[i];
             // std::cout << results[i] << " ";
             delay = i;
@@ -128,12 +122,16 @@ int crossCorrelation(std::vector<double> &data1, std::vector<double> &data2, siz
 #ifdef DEBUG
     plt::plot(std::vector<double>(results, results + length));
     plt::show();
+    std::cout << (delay * (1.0/48000.0)) << "s of delay" << std::endl;
 #endif
+
+    free(out1);
+    free(out2);
+    free(in);
     free(results);
 
-    // return (delay * (1.0/48000.0)) * 1000;
-    std::cout << (delay * (1.0/48000.0)) << "s of delay" << std::endl;
-    return delay;
+    // Conversion to milliseconds with 48,000KHz simplified
+    return delay / 48.0;
 }
 
 
@@ -151,7 +149,7 @@ void runProcessing(std::string name, std::vector<double> &out) {
     }
 
     // Only using 5 seconds (audio is 48,000KHz)
-    // Half the vector has to be filled with zeroes.
+    // Half the vector has to be of size 2N-1, the rest being filled with zeroes.
     out = audio.samples[0];
     int n = 48000 * 5 * 2;
     out.resize(n);
@@ -172,8 +170,6 @@ int main(int argc, char *argv[]) {
 #endif
 
     // Processing both files with multi-threading.
-    int delay;
-    double confidence;
     std::vector<double> out1;
     std::vector<double> out2;
     std::thread t1(&runProcessing, argv[1], std::ref(out1));
@@ -191,15 +187,17 @@ int main(int argc, char *argv[]) {
     std::vector<double> old2(out2);
 #endif
 
-    delay = crossCorrelation(out1, out2, out1.size(), confidence);
+    double confidence;
+    double delay = crossCorrelation(out1, out2, out1.size(), confidence);
 
 #ifdef DEBUG
     duration = (std::clock() - start) / (double) CLOCKS_PER_SEC;
     std::cout << "Matching took " + std::to_string(duration) + "s \n";;
-    if (delay < 0) {
-        old1.erase(old1.begin(), old1.size() > delay ?  old1.begin() + delay : old1.end());
+    double samplesDelay = delay * 48;
+    if (samplesDelay < 0) {
+        old1.erase(old1.begin(), old1.size() > samplesDelay ?  old1.begin() + samplesDelay : old1.end());
     } else {
-        old2.erase(old2.begin(), old2.size() > delay ?  old2.begin() + delay : old2.end());
+        old2.erase(old2.begin(), old2.size() > samplesDelay ?  old2.begin() + samplesDelay : old2.end());
     }
     plt::plot(old1);
     plt::plot(old2);
