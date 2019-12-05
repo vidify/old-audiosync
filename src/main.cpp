@@ -34,7 +34,11 @@ namespace plt = matplotlibcpp;
 
 // Global mutex used in multithreading.
 std::mutex GLOBAL_MUTEX;
-
+// Sample rate used. It has to be 48000 because most YouTube videos can only
+// be downloaded at that rate, and both audio files must have the same one.
+#define SAMPLE_RATE 48000
+// Conversion from the used sample rate to milliseconds: 48000 / 1000
+#define SAMPLES_TO_MS 48
 
 // Calculating the magnitude of a complex number.
 inline double getMagnitude(double r, double i) {
@@ -116,7 +120,7 @@ double crossCorrelation(std::vector<double> &data1, std::vector<double> &data2, 
 #ifdef DEBUG
     plt::plot(std::vector<double>(results, results + length));
     plt::show();
-    std::cout << delay * 48.0 << "s of delay" << std::endl;
+    std::cout << delay * SAMPLES_TO_MS << "ms of delay" << std::endl;
 #endif
 
     fftw_free(out1);
@@ -124,8 +128,8 @@ double crossCorrelation(std::vector<double> &data1, std::vector<double> &data2, 
     fftw_free(in);
     fftw_free(results);
 
-    // Conversion to milliseconds with 48,000KHz (simplified)
-    return delay / 48.0;
+    // Conversion to milliseconds with 48000KHz
+    return delay / SAMPLES_TO_MS;
 }
 
 
@@ -142,10 +146,10 @@ void runProcessing(std::string name, std::vector<double> &out) {
         throw std::runtime_error("Could not read " + name);
     }
 
-    // Only using 5 seconds (audio is 48,000KHz)
+    // Only using 5 seconds (audio is 48000KHz)
     // Half the vector has to be of size 2N-1, the rest being filled with zeroes.
     out = audio.samples[0];
-    int n = 48000 * 5 * 2;
+    int n = SAMPLE_RATE * 5 * 2;
     out.resize(n);
     for (int i = n/2; i < n; ++i)
         out.push_back(0);
@@ -189,7 +193,7 @@ int main(int argc, char *argv[]) {
     std::cout << "Matching took " + std::to_string(duration) + "s \n";;
 
     // Plotting the output
-    double samplesDelay = delay * 48;
+    double samplesDelay = delay * SAMPLES_TO_MS;
     if (samplesDelay < 0) {
         old1.erase(old1.begin(), old1.size() > samplesDelay ?  old1.begin() + samplesDelay : old1.end());
     } else {
