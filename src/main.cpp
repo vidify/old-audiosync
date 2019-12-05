@@ -20,7 +20,7 @@
 #include <fftw3.h>
 #include "../include/AudioFile.h"
 
-#ifdef DEBUG
+#ifdef PLOT
 // Plotting output in debug mode.
 #include "../include/matplotlibcpp.h"
 namespace plt = matplotlibcpp;
@@ -117,10 +117,12 @@ double crossCorrelation(std::vector<double> &data1, std::vector<double> &data2, 
 
     std::cout << "Finished with confidence " << confidence << " and delay " << delay << std::endl;
 
-#ifdef DEBUG
+#ifdef PLOT
     plt::plot(std::vector<double>(results, results + length));
     plt::show();
-    std::cout << delay * SAMPLES_TO_MS << "ms of delay" << std::endl;
+#endif
+#ifdef DEBUG
+    std::cout << delay / SAMPLES_TO_MS << "ms of delay" << std::endl;
 #endif
 
     fftw_free(out1);
@@ -181,8 +183,6 @@ int main(int argc, char *argv[]) {
 
     // Benchmarking the matching function
     start = std::clock();
-    std::vector<double> old1(out1);
-    std::vector<double> old2(out2);
 #endif
 
     double confidence;
@@ -191,16 +191,17 @@ int main(int argc, char *argv[]) {
 #ifdef DEBUG
     duration = (std::clock() - start) / (double) CLOCKS_PER_SEC;
     std::cout << "Matching took " + std::to_string(duration) + "s \n";;
-
+#endif
+#ifdef PLOT
     // Plotting the output
     double samplesDelay = delay * SAMPLES_TO_MS;
     if (samplesDelay < 0) {
-        old1.erase(old1.begin(), old1.size() > samplesDelay ?  old1.begin() + samplesDelay : old1.end());
+        out1.erase(out1.begin(), out1.size() > samplesDelay ?  out1.begin() + samplesDelay : out1.end());
     } else {
-        old2.erase(old2.begin(), old2.size() > samplesDelay ?  old2.begin() + samplesDelay : old2.end());
+        out2.erase(out2.begin(), out2.size() > samplesDelay ?  out2.begin() + samplesDelay : out2.end());
     }
-    plt::plot(old1);
-    plt::plot(old2);
+    plt::plot(out1);
+    plt::plot(out2);
     plt::show();
 #endif
 
