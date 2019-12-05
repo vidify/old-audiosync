@@ -33,7 +33,7 @@ namespace plt = matplotlibcpp;
 
 
 // Global mutex used in multithreading.
-std::mutex GLOBAL_MUTEX;
+static std::mutex GLOBAL_MUTEX;
 // Sample rate used. It has to be 48000 because most YouTube videos can only
 // be downloaded at that rate, and both audio files must have the same one.
 #define SAMPLE_RATE 48000
@@ -41,13 +41,13 @@ std::mutex GLOBAL_MUTEX;
 #define SAMPLES_TO_MS 48
 
 // Calculating the magnitude of a complex number.
-inline double getMagnitude(double r, double i) {
+static inline double getMagnitude(double r, double i) {
     return sqrt(r*r + i*i);
 }
 
 
 // Concurrent implementation of the Fast Fourier Transform using FFTW.
-void fft(std::vector<double> &in, fftw_complex *out) {
+static void fft(std::vector<double> &in, fftw_complex *out) {
     fftw_plan p;
     { std::unique_lock<std::mutex> lock(GLOBAL_MUTEX);
         p = fftw_plan_dft_r2c_1d(in.size(), &in[0], out, FFTW_ESTIMATE);
@@ -62,7 +62,7 @@ void fft(std::vector<double> &in, fftw_complex *out) {
 
 // The Inverse Fast Fourier Transform using FFTW. This doesn't need to be
 // concurrent because it's calculated at the end.
-inline void ifft(fftw_complex *in, double out[], size_t length) {
+static inline void ifft(fftw_complex *in, double out[], size_t length) {
     fftw_plan p = fftw_plan_dft_c2r_1d(length, in, out, FFTW_ESTIMATE);
     fftw_execute(p);
     fftw_destroy_plan(p);
@@ -79,7 +79,6 @@ inline void ifft(fftw_complex *in, double out[], size_t length) {
 // length 2N-1. This is needed to calculate the circular cross-correlation
 // rather than the regular cross-correlation.
 //
-// TODO: Check NULL mallocs and etc.
 // TODO: Get confidence level: https://dsp.stackexchange.com/questions/9797/cross-correlation-peak
 //
 // Returns the delay in milliseconds the second data set has over the first
@@ -120,9 +119,6 @@ double crossCorrelation(std::vector<double> &data1, std::vector<double> &data2, 
 #ifdef PLOT
     plt::plot(std::vector<double>(results, results + length));
     plt::show();
-#endif
-#ifdef DEBUG
-    std::cout << delay / SAMPLES_TO_MS << "ms of delay" << std::endl;
 #endif
 
     fftw_free(out1);
@@ -187,6 +183,7 @@ int main(int argc, char *argv[]) {
 
     double confidence;
     double delay = crossCorrelation(out1, out2, out1.size(), confidence);
+    std::cout << delay << "ms of delay" << std::endl;
 
 #ifdef DEBUG
     duration = (std::clock() - start) / (double) CLOCKS_PER_SEC;
