@@ -61,7 +61,7 @@ static void *fft(void *thread_arg) {
     fftw_plan p = fftw_plan_dft_r2c_1d(data->length, data->real, data->cpx, FFTW_ESTIMATE);
     pthread_mutex_unlock(&MUTEX);
 
-    // Actually executing the FFT
+    // Actually executing the IFFT
     fftw_execute(p);
 
     // Destroying the plan and terminate the thread
@@ -107,8 +107,7 @@ static void *ifft(void *thread_arg) {
 // rather than the regular cross-correlation.
 //
 // TODO: Get confidence level: https://dsp.stackexchange.com/questions/9797/cross-correlation-peak
-// TODO: All functions in this module should also return an error code in case
-// something doesn't go right.
+// TODO: Better error handling
 //
 // Returns the delay in milliseconds the second data set has over the first
 // one, with a confidence between 0 and 1.
@@ -216,6 +215,11 @@ static void read_wav(char *name, sample_t *data, size_t length) {
 
     sf_count_t items;
     items = sf_read_double (file, data, length);
+
+    // Zero padding
+    for (int i = length/2; i < length; ++i)
+        data[i] = 0;
+
 #ifdef DEBUG
     printf("%ld items read\n", items);
 #endif
