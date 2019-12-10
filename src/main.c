@@ -173,7 +173,7 @@ double cross_correlation(sample_t *data1, sample_t *data2,
 
     // Getting the results
     *confidence = results[0];
-    int delay = 0;
+    double delay = 0;
     for (size_t i = 1; i < length; ++i) {
         if (fabs(results[i]) > *confidence) {
             *confidence = results[i];
@@ -233,7 +233,7 @@ int main(int argc, char *argv[]) {
     }
 
     // The length in milliseconds will also be provided as a parameter.
-    const int ms = 5000;
+    const int ms = 10000;
     // Actual size of the data, having in account the sample rate and that
     // half of its size will be zero-padded.
     const int length = SAMPLE_RATE * (ms / 1000) * 2;
