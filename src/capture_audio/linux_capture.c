@@ -1,25 +1,23 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
-#include <string.h>
-#include <errno.h>
 #include <pulse/error.h>
 #include <pulse/gccmacro.h>
 #include <pulse/pulseaudio.h>
 #include <pulse/simple.h>
 
-#define SAMPLE_RATE 48000
-#define NUM_CHANNELS 1
-#define BUFSIZE 1024
-#define FORMAT PA_SAMPLE_FLOAT32LE
+#include "linux_capture.h"
+
+#define PA_BUFSIZE 1024
+#define PA_FORMAT PA_SAMPLE_FLOAT32LE
 
 
-int captureAudio(int maxSamples, float *data) {
+int capture_audio(double *data, const int max_samples, int sample_rate,
+                  int num_channels) {
     // The sample type to use
-    static const pa_sample_spec ss = {
-        .format = FORMAT,
-        .rate = SAMPLE_RATE,
-        .channels = NUM_CHANNELS
+    const pa_sample_spec ss = {
+        .format = PA_FORMAT,
+        .rate = sample_rate,
+        .channels = num_channels
     };
 
     // Saving the return value in case of errors
@@ -41,13 +39,13 @@ int captureAudio(int maxSamples, float *data) {
         goto finish;
     }
 
-    size_t step = BUFSIZE * sizeof(float);
-    for (size_t counter = 0; counter < maxSamples; counter += step) {
-        if (pa_simple_read(s, data + counter, BUFSIZE * sizeof(data), &error) < 0) {
-            fprintf(stderr, __FILE__": pa_simple_read() failed: %s\n", pa_strerror(error));
-            goto finish;
-        }
-    }
+    /* size_t step = PA_BUFSIZE * sizeof(float); */
+    /* for (size_t counter = 0; counter < max_samples; counter += step) { */
+        /* if (pa_simple_read(s, data + counter, PA_BUFSIZE * sizeof(data), &error) < 0) { */
+            /* fprintf(stderr, __FILE__": pa_simple_read() failed: %s\n", pa_strerror(error)); */
+            /* goto finish; */
+        /* } */
+    /* } */
 
     ret = 0;
 
