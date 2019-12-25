@@ -47,13 +47,14 @@ static void *fft(void *thread_arg) {
     // fftw_execute, so the plan has to be created and destroyed with
     // a lock.
     pthread_mutex_lock(&MUTEX);
-    fftw_plan p = fftw_plan_dft_r2c_1d(data->length, data->real, data->cpx, FFTW_ESTIMATE);
+    fftw_plan p = fftw_plan_dft_r2c_1d(data->length, data->real, data->cpx,
+                                       FFTW_ESTIMATE);
     pthread_mutex_unlock(&MUTEX);
 
-    // Actually executing the IFFT
+    // Actually executing the FFT
     fftw_execute(p);
 
-    // Destroying the plan and terminate the thread
+    // Destroying the plan and terminating the thread
     pthread_mutex_lock(&MUTEX);
     fftw_destroy_plan(p);
     pthread_mutex_unlock(&MUTEX);
@@ -62,38 +63,35 @@ static void *fft(void *thread_arg) {
 
 
 // Calculating the cross-correlation between two signals `a` and `b`:
-//     xcross = ifft(fft(a) * magn(fft(b)))
-// And where magn() is the magnitude of the complex numbers returned by the
-// fft. Instead of magn(), a reverse() function could be used. But the
-// magnitude seems easier to calculate for now.
+//     xcross = ifft(fft(a) * conj(fft(b)))
 //
 // Both datasets should have the same size. They should be zero-padded to
 // length 2N-1. This is needed to calculate the circular cross-correlation
 // rather than the regular cross-correlation.
 //
-// TODO: Get confidence level: https://dsp.stackexchange.com/questions/9797/cross-correlation-peak
+// TODO: calculate Pearson coefficient.
 //
 // Returns the delay in milliseconds the second data set has over the first
-// one, with a confidence between 0 and 1.
+// one, with a confidence between -1 and 1.
 double cross_correlation(double *data1, double *data2,
                          const size_t length, double *confidence) {
     // Getting the complex results from both FFT. The output length for the
     // complex numbers is n/2+1.
     const size_t cpx_length = (length / 2) + 1;
-    double complex *out1 = fftw_alloc_complex(cpx_length);
-    double complex *out2 = fftw_alloc_complex(cpx_length);
+    double complex *arr1 = fftw_alloc_complex(cpx_length);
+    double complex *arr2 = fftw_alloc_complex(cpx_length);
 
     // Initializing the threads and running them
     int err;
     pthread_t fft1_thread, fft2_thread;
     struct fftw_data fft1_data = {
         .real = data1,
-        .cpx = out1,
+        .cpx = arr1,
         .length = length
     };
     struct fftw_data fft2_data = {
         .real = data2,
-        .cpx = out2,
+        .cpx = arr2,
         .length = length
     };
     err = pthread_create(&fft1_thread, NULL, &fft, (void *) &fft1_data);
@@ -110,17 +108,14 @@ double cross_correlation(double *data1, double *data2,
     pthread_join(fft2_thread, NULL);
 
     // Product of fft1 * mag(fft2) where fft1 is complex and mag(fft2) is real.
-    double complex *in = fftw_alloc_complex(cpx_length);
-    double complex conjugate;
     for (size_t i = 0; i < cpx_length; ++i) {
-        conjugate = conj(out2[i]);
-        in[i] = out1[i] * conjugate;
+        arr1[i] = arr1[i] * conj(arr2[i]);
     }
 
     // And calculating the ifft. The size of the results is going to be the
     // original length again.
     double *results = fftw_alloc_real(length);
-    fftw_plan p = fftw_plan_dft_c2r_1d(length, in, results, FFTW_ESTIMATE);
+    fftw_plan p = fftw_plan_dft_c2r_1d(length, arr1, results, FFTW_ESTIMATE);
     fftw_execute(p);
     fftw_destroy_plan(p);
 
@@ -151,9 +146,8 @@ double cross_correlation(double *data1, double *data2,
     /* pclose(gnuplot); */
 #endif
 
-    fftw_free(out1);
-    fftw_free(out2);
-    fftw_free(in);
+    fftw_free(arr1);
+    fftw_free(arr2);
     fftw_free(results);
 
     // Conversion to milliseconds with 48000KHz as the sample rate.
