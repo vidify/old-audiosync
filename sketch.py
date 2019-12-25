@@ -1,3 +1,4 @@
+import time
 import matplotlib.pyplot as plt
 import numpy as np
 import scipy.io.wavfile
@@ -34,17 +35,18 @@ data2 = np.pad(data2, (0,n), 'constant')
 # save half the computation time by using RFFT and IRFFT, since the wave only
 # has real values.
 print("Executing with the formula")
+start_time = time.time()
+
 fft1 = np.fft.rfft(data1)
 fft2 = np.fft.rfft(data2)
 products = fft1 * np.conjugate(fft2)
 result = np.fft.irfft(products)
-plt.plot(result)
-plt.show()
-
 # Getting the peak
 lag = np.argmax(np.abs(result))
 print(lag / (sample_rate / 1000), "milliseconds")
+print("Result obtained in", time.time() - start_time, "secs")
 
+# Matching the files
 result1 = data1[:data1.size//2]
 result2 = np.roll(data2[:data2.size//2], lag)
 

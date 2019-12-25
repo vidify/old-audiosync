@@ -17,6 +17,7 @@
 #include <math.h>
 #include <time.h>
 #include <pthread.h>
+#include <complex.h>
 #include <fftw3.h>
 #include <sndfile.h>
 
@@ -27,25 +28,13 @@ pthread_mutex_t MUTEX;
 #define SAMPLE_RATE 48000
 // Conversion from the used sample rate to milliseconds: 48000 / 1000
 #define SAMPLES_TO_MS 48
-// The format used for the samples.
-typedef double sample_t;
 
 // Data structure used to pass parameters to concurrent FFTW-related functions.
 struct fftw_data {
-    sample_t *real;
-    fftw_complex *cpx;
+    double *real;
+    double complex *cpx;
     size_t length;
 };
-
-// fftw_complex indexes for clarification.
-#define REAL 0
-#define IMAG 1
-
-
-// Calculating the magnitude of a complex number.
-static inline sample_t getMagnitude(sample_t r, sample_t i) {
-    return sqrt(r*r + i*i);
-}
 
 
 // Concurrent implementation of the Fast Fourier Transform using FFTW.
@@ -72,30 +61,6 @@ static void *fft(void *thread_arg) {
 }
 
 
-// The Inverse Fast Fourier Transform using FFTW.
-static void *ifft(void *thread_arg) {
-    // Getting the parameters passed to this thread
-    struct fftw_data *data;
-    data = (struct fftw_data *) thread_arg;
-
-    // Initializing the plan: the only thread-safe call in FFTW is
-    // fftw_execute, so the plan has to be created and destroyed with
-    // a lock.
-    pthread_mutex_lock(&MUTEX);
-    fftw_plan p = fftw_plan_dft_c2r_1d(data->length, data->cpx, data->real, FFTW_ESTIMATE);
-    pthread_mutex_unlock(&MUTEX);
-
-    // Actually executing the FFT
-    fftw_execute(p);
-
-    // Destroying the plan and terminate the thread
-    pthread_mutex_lock(&MUTEX);
-    fftw_destroy_plan(p);
-    pthread_mutex_unlock(&MUTEX);
-    pthread_exit(NULL);
-}
-
-
 // Calculating the cross-correlation between two signals `a` and `b`:
 //     xcross = ifft(fft(a) * magn(fft(b)))
 // And where magn() is the magnitude of the complex numbers returned by the
@@ -107,17 +72,16 @@ static void *ifft(void *thread_arg) {
 // rather than the regular cross-correlation.
 //
 // TODO: Get confidence level: https://dsp.stackexchange.com/questions/9797/cross-correlation-peak
-// TODO: Better error handling
 //
 // Returns the delay in milliseconds the second data set has over the first
 // one, with a confidence between 0 and 1.
-double cross_correlation(sample_t *data1, sample_t *data2,
+double cross_correlation(double *data1, double *data2,
                          const size_t length, double *confidence) {
     // Getting the complex results from both FFT. The output length for the
     // complex numbers is n/2+1.
     const size_t cpx_length = (length / 2) + 1;
-    fftw_complex *out1 = fftw_alloc_complex(cpx_length);
-    fftw_complex *out2 = fftw_alloc_complex(cpx_length);
+    double complex *out1 = fftw_alloc_complex(cpx_length);
+    double complex *out2 = fftw_alloc_complex(cpx_length);
 
     // Initializing the threads and running them
     int err;
@@ -146,53 +110,45 @@ double cross_correlation(sample_t *data1, sample_t *data2,
     pthread_join(fft2_thread, NULL);
 
     // Product of fft1 * mag(fft2) where fft1 is complex and mag(fft2) is real.
-    fftw_complex *in = fftw_alloc_complex(cpx_length);
-    sample_t magnitude;
+    double complex *in = fftw_alloc_complex(cpx_length);
+    double complex conjugate;
     for (size_t i = 0; i < cpx_length; ++i) {
-        magnitude = getMagnitude(out2[i][REAL], out2[i][IMAG]);
-        in[i][REAL] = out1[i][REAL] * magnitude;
-        in[i][IMAG] = out1[i][IMAG] * magnitude;
+        conjugate = conj(out2[i]);
+        in[i] = out1[i] * conjugate;
     }
-    // The size of the results is going to be the original length again.
-    sample_t *results = fftw_alloc_real(length);
 
-    // Concurrently executing the ifft. This is not needed right not but it
-    // might when the confidence is calculated.
-    pthread_t ifft_thread;
-    struct fftw_data ifft_data = {
-        .real = results,
-        .cpx = in,
-        .length = length
-    };
-    err = pthread_create(&ifft_thread, NULL, &ifft, (void *) &ifft_data);
-    if (err) {
-        fprintf(stderr, "pthread_create failed: %d\n", err);
-        exit(1);
-    }
-    pthread_join(ifft_thread, NULL);
+    // And calculating the ifft. The size of the results is going to be the
+    // original length again.
+    double *results = fftw_alloc_real(length);
+    fftw_plan p = fftw_plan_dft_c2r_1d(length, in, results, FFTW_ESTIMATE);
+    fftw_execute(p);
+    fftw_destroy_plan(p);
 
-    // Getting the results
-    *confidence = results[0];
-    double delay = 0;
+    // Getting the results: the index of the maximum value is the desired lag.
+    double abs;
+    double max = results[0];
+    size_t lag = 0;
     for (size_t i = 1; i < length; ++i) {
-        if (fabs(results[i]) > *confidence) {
-            *confidence = results[i];
-            delay = i;
+        abs = fabs(results[i]);
+        if (abs > max) {
+            max = abs;
+            lag = i;
         }
     }
 
 #ifdef DEBUG
-    printf("Plotting results\n");
-    // Showing a plot of the results with gnuplot
-    FILE *gnuplot = popen("gnuplot", "w");
-    fprintf(gnuplot, "plot '-' with dots\n");
-    for (int i = 0; i < length; ++i)
-        fprintf(gnuplot, "%f\n", results[i]);
-    fprintf(gnuplot, "e\n");
-    fflush(gnuplot);
-    printf("Press enter to continue\n");
-    getchar();
-    pclose(gnuplot);
+    // This is commented because it messes up the benchmarks
+    /* printf("Plotting results\n"); */
+    /* // Showing a plot of the results with gnuplot */
+    /* FILE *gnuplot = popen("gnuplot", "w"); */
+    /* fprintf(gnuplot, "plot '-' with dots\n"); */
+    /* for (int i = 0; i < length; ++i) */
+        /* fprintf(gnuplot, "%f\n", results[i]); */
+    /* fprintf(gnuplot, "e\n"); */
+    /* fflush(gnuplot); */
+    /* printf("Press enter to continue\n"); */
+    /* getchar(); */
+    /* pclose(gnuplot); */
 #endif
 
     fftw_free(out1);
@@ -201,13 +157,13 @@ double cross_correlation(sample_t *data1, sample_t *data2,
     fftw_free(results);
 
     // Conversion to milliseconds with 48000KHz as the sample rate.
-    return delay / SAMPLES_TO_MS;
+    return lag / SAMPLES_TO_MS;
 }
 
 
 // Reading a WAV file with libsndfile, won't be used in the final version
 // so it's not important.
-static void read_wav(char *name, sample_t *data, size_t length) {
+static void read_wav(char *name, double *data, size_t length) {
     // Loading the WAV file
     SNDFILE *file;
     SF_INFO file_info;
@@ -233,14 +189,14 @@ int main(int argc, char *argv[]) {
     }
 
     // The length in milliseconds will also be provided as a parameter.
-    const int ms = 10000;
+    const int ms = 5000;
     // Actual size of the data, having in account the sample rate and that
     // half of its size will be zero-padded.
     const int length = SAMPLE_RATE * (ms / 1000) * 2;
     // Reading both files. This doesn't have to be concurrent because in
     // the future this module will recieve the data arrays directly.
-    sample_t *out1 = fftw_alloc_real(length);
-    sample_t *out2 = fftw_alloc_real(length);
+    double *out1 = fftw_alloc_real(length);
+    double *out2 = fftw_alloc_real(length);
     read_wav(argv[1], out1, length);
     read_wav(argv[2], out2, length);
 
