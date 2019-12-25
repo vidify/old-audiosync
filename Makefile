@@ -12,11 +12,14 @@ debug: main
 release: CFLAGS += -Ofast
 release: main
 
-main: main.o linux_capture.o
-	$(CC) $(CFLAGS) main.o linux_capture.o -o main
+main: main.o cross_correlation.o linux_capture.o
+	$(CC) $(CFLAGS) main.o cross_correlation.o linux_capture.o -o main
 
 main.o: src/main.c
 	$(CC) $(CFLAGS) -c src/main.c
+
+cross_correlation.o: src/cross_correlation.c
+	$(CC) $(CFLAGS) -c src/cross_correlation.c
 
 linux_capture.o: src/capture_audio/linux_capture.c
 	$(CC) $(CFLAGS) -c src/capture_audio/linux_capture.c
