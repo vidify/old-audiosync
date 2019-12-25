@@ -23,7 +23,7 @@
 #include <sndfile.h>
 
 // Global mutex used for multithreading.
-pthread_mutex_t MUTEX;
+static pthread_mutex_t MUTEX;
 // Sample rate used. It has to be 48000 because most YouTube videos can only
 // be downloaded at that rate, and both audio files must have the same one.
 #define SAMPLE_RATE 48000
@@ -230,7 +230,7 @@ int main(int argc, char *argv[]) {
     const int ms = atoi(argv[3]);
     // Actual size of the data, having in account the sample rate and that
     // half of its size will be zero-padded.
-    const int length = SAMPLE_RATE * (ms / 1000) * 2;
+    const size_t length = SAMPLE_RATE * (ms / 1000) * 2;
     // Reading both files. This doesn't have to be concurrent because in
     // the future this module will recieve the data arrays directly.
     double *out1 = fftw_alloc_real(length);
