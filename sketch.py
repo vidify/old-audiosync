@@ -13,7 +13,7 @@ rate1, audio1 = scipy.io.wavfile.read(file1)
 rate2, audio2 = scipy.io.wavfile.read(file2)
 
 # Zero padding
-n = 10 * sample_rate  # Seconds of audio
+n = 5 * sample_rate  # Seconds of audio
 data1 = audio1[:n]
 data1 = np.pad(data1, (0,n), 'constant')
 data2 = audio2[:n]
@@ -36,34 +36,21 @@ data2 = np.pad(data2, (0,n), 'constant')
 print("Executing with the formula")
 fft1 = np.fft.rfft(data1)
 fft2 = np.fft.rfft(data2)
-products = []
-for i in range(fft1.size):
-    mag = abs(fft2[i])
-    products.append(complex(fft1[i].real * mag, fft1[i].imag * mag)) 
+products = fft1 * np.conjugate(fft2)
 result = np.fft.irfft(products)
-#  plt.plot(result)
-#  plt.show()
+plt.plot(result)
+plt.show()
 
 # Getting the peak
-confidence = result[0]
-lag = 0
-for i in range(result.size):
-    if abs(result[i]) > confidence:
-        confidence = result[i]
-        lag = i
+lag = np.argmax(np.abs(result))
 print(lag / (sample_rate / 1000), "milliseconds")
 
 result1 = data1[:data1.size//2]
-result2 = np.roll(data2[:data2.size//2], -lag)
+result2 = np.roll(data2[:data2.size//2], lag)
 
 # Calculating the Pearson coefficient
 print("Executing scipy.stats.pearsonr")
 corr, pvalue = pearsonr(result1, result2)
-print(f"Finished with a p-value of {pvalue}: {corr}")
-
-# Calculating the Pearson coefficient with numpy
-print("Executing np.corrcoef")
-np.corrcoef(result1, result2)
 print(f"Finished with a p-value of {pvalue}: {corr}")
 
 # Calculating the Spearman coefficient
