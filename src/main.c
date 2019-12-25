@@ -138,38 +138,39 @@ double cross_correlation(double *data1, double *data2,
     fftw_free(results);
 
 
-    // Shifting the first array to the right by the lag.
+    // Shifting the first array to the left by the lag.
     // The zero-padding can be ignored from now on.
     const size_t real_length = length / 2;
-    size_t i = 0;
     size_t shift_i;
-    double *copy = fftw_alloc_real(real_length);
-    memcpy(copy, data1, sizeof(*data1) * real_length);
-    for (i = 0; i < real_length; ++i) {
+    double *copy = malloc(real_length * sizeof(double));
+    if (copy == NULL) {
+        fprintf(stderr, "Memory allocation error with `copy`\n");
+        exit(1);
+    }
+    memcpy(copy, data1, sizeof(double) * real_length);
+    for (size_t i = 0; i < real_length; ++i) {
         shift_i = (i + lag + real_length) % real_length;
         data1[i] = copy[shift_i];
     }
-    fftw_free(copy);
+    free(copy);
 
     // Calculating the Pearson Correlation Coefficient:
     // https://en.wikipedia.org/wiki/Pearson_correlation_coefficient#For_a_sample
     // 1. The average for both datasets.
-    i = 0;
     double sum1 = 0.0;
     double sum2 = 0.0;
-    for (; i < real_length; ++i) {
+    for (size_t i = 0; i < real_length; ++i) {
          sum1 += data1[i];
          sum2 += data2[i];
     }
     double avg1 = sum1 / real_length;
     double avg2 = sum2 / real_length;
-
-    // 2. Applying the definition.
+    // 2. Applying the definition formula.
     double diff1, diff2;
     double diffprod = 0.0;
     double diff1_squared = 0.0;
     double diff2_squared = 0.0;
-    for (i = 0; i < real_length; ++i) {
+    for (size_t i = 0; i < real_length; ++i) {
         diff1 = data1[i] - avg1;
         diff2 = data2[i] - avg2;
         diffprod += diff1 * diff2;
@@ -178,7 +179,7 @@ double cross_correlation(double *data1, double *data2,
     }
     *coefficient = diffprod / sqrt(diff1_squared * diff2_squared);
 
-    printf("Matching took %fs\n", (clock() - start) / (double) CLOCKS_PER_SEC);
+    printf("Result obtained in %f secs\n", (clock() - start) / (double) CLOCKS_PER_SEC);
     printf("%ld frames of delay with a confidence of %f\n", lag, *coefficient);
 
 #ifdef DEBUG
@@ -220,13 +221,13 @@ static void read_wav(char *name, double *data, size_t length) {
 
 
 int main(int argc, char *argv[]) {
-    if (argc != 3) {
-        fprintf(stderr, "Usage: %s <file1>.wav <file2>.wav\n", argv[0]);
+    if (argc != 4) {
+        fprintf(stderr, "Usage: %s file1.wav file2.wav MS\n", argv[0]);
         exit(1);
     }
 
     // The length in milliseconds will also be provided as a parameter.
-    const int ms = 30000;
+    const int ms = atoi(argv[3]);
     // Actual size of the data, having in account the sample rate and that
     // half of its size will be zero-padded.
     const int length = SAMPLE_RATE * (ms / 1000) * 2;
@@ -238,8 +239,8 @@ int main(int argc, char *argv[]) {
     read_wav(argv[2], out2, length);
 
     double confidence;
-    double delay = cross_correlation(out1, out2, length, &confidence);
-    printf("%f ms of delay with a confidence of %f\n", delay, confidence);
+    double lag = cross_correlation(out1, out2, length, &confidence);
+    /* printf("%f ms of delay with a confidence of %f\n", lag, confidence); */
 
     fftw_free(out1);
     fftw_free(out2);
