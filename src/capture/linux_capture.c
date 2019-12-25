@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <pthread.h>
 #include <unistd.h>
 #include <string.h>
 #include <errno.h>
@@ -7,17 +8,33 @@
 #include <pulse/gccmacro.h>
 #include <pulse/pulseaudio.h>
 #include <pulse/simple.h>
+#include "../global.h"
 
-#define SAMPLE_RATE 48000
-#define NUM_CHANNELS 1
+
+#define PA_FORMAT PA_SAMPLE_FLOAT32LE
 #define BUFSIZE 1024
-#define FORMAT PA_SAMPLE_FLOAT32LE
 
 
-int captureAudio(int maxSamples, float *data) {
+void *capture(void *arg) {
+    struct cap_data *data;
+    data = (struct cap_data *) arg;
+
+    int interval_count = 0;
+    for (data->len = 0; data->len < data->total_len; ++(data->len)) {
+        data->buf[data->len] = 0;
+
+        if (data->len >= data->intervals[interval_count]) {
+            pthread_cond_signal(data->done);
+            interval_count++;
+        }
+    }
+    pthread_exit(NULL);
+
+
+    // TODO
     // The sample type to use
     static const pa_sample_spec ss = {
-        .format = FORMAT,
+        .format = PA_FORMAT,
         .rate = SAMPLE_RATE,
         .channels = NUM_CHANNELS
     };
@@ -42,10 +59,18 @@ int captureAudio(int maxSamples, float *data) {
     }
 
     size_t step = BUFSIZE * sizeof(float);
-    for (size_t counter = 0; counter < maxSamples; counter += step) {
-        if (pa_simple_read(s, data + counter, BUFSIZE * sizeof(data), &error) < 0) {
+    /* int interval_count = 0; */
+    for (data->len = 0; data->len < data->total_len; data->len += step) {
+        if (pa_simple_read(s, (data->buf) + data->len, BUFSIZE * sizeof(double), &error) < 0) {
             fprintf(stderr, __FILE__": pa_simple_read() failed: %s\n", pa_strerror(error));
             goto finish;
+        }
+
+        // Sending the signal to the main thread when an interval has been
+        // completed.
+        if (data->len >= data->intervals[interval_count]) {
+            pthread_cond_signal(data->done);
+            interval_count++;
         }
     }
 
@@ -55,6 +80,6 @@ int captureAudio(int maxSamples, float *data) {
 finish:
     if (s)
         pa_simple_free(s);
-
-    return ret;
+    
+    pthread_exit(NULL);
 }

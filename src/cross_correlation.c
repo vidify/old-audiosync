@@ -6,12 +6,11 @@
 #include <pthread.h>
 #include <complex.h>
 #include <fftw3.h>
+#include "global.h"
 
 
 // Global mutex used for multithreading.
 static pthread_mutex_t MUTEX;
-// Conversion from the used sample rate to milliseconds: 48000 / 1000
-#define SAMPLES_TO_MS 48
 
 
 // Data structure used to pass parameters to concurrent FFTW-related functions.
