@@ -6,18 +6,10 @@ CFLAGS = -std=c11 -Wall -lfftw3 -lm -pthread -lpulse-simple -lpulse -lsndfile
 
 all: main
 
-# Debug mode:
-# Enables GDB debug (-g), AddressSanitizer and plots with matplotlib.
-# Benchmarks shouldn't be taken into account when using debug mode because
-# it increases a regular calculation from .06 seconds to an entire second.
-# Use release for that instead, which is what's going to be used when
-# it's finished. gnuplot has to be installed for the plots to show up.
 debug: CFLAGS += -DDEBUG
 debug: main
 
-# Release mode:
-# For now it just enables optimization.
-release: CFLAGS += -O3
+release: CFLAGS += -Ofast
 release: main
 
 main: main.o linux_capture.o

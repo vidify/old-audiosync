@@ -6,7 +6,7 @@ import scipy.signal
 from scipy.stats import pearsonr, spearmanr
 
 
-# Opening the files. The actual lag is 3648083 frames.
+# Opening the files. The actual lag is ~3648 ms.
 file1 = "audio/youtube.wav"
 file2 = "audio/recorded.wav"
 sample_rate = 48000
@@ -14,7 +14,7 @@ rate1, audio1 = scipy.io.wavfile.read(file1)
 rate2, audio2 = scipy.io.wavfile.read(file2)
 
 # Zero padding
-n = 5 * sample_rate  # Seconds of audio
+n = 30 * sample_rate  # Seconds of audio
 data1 = audio1[:n]
 data1 = np.pad(data1, (0,n), 'constant')
 data2 = audio2[:n]
@@ -44,23 +44,16 @@ result = np.fft.irfft(products)
 # Getting the peak
 lag = np.argmax(np.abs(result))
 print(lag / (sample_rate / 1000), "milliseconds")
-print("Result obtained in", time.time() - start_time, "secs")
 
 # Matching the files
 result1 = data1[:data1.size//2]
 result2 = np.roll(data2[:data2.size//2], lag)
 
 # Calculating the Pearson coefficient
-print("Executing scipy.stats.pearsonr")
 corr, pvalue = pearsonr(result1, result2)
-print(f"Finished with a p-value of {pvalue}: {corr}")
-
-# Calculating the Spearman coefficient
-print("Executing scipy.stats.spearmanr")
-corr, pvalue = spearmanr(result1, result2)
-print(f"Finished with a p-value of {pvalue}: {corr}")
+print("Result obtained in", time.time() - start_time, "secs")
 
 # Plotting the results
-plt.plot(result1)
-plt.plot(result2)
-plt.show()
+#  plt.plot(result1)
+#  plt.plot(result2)
+#  plt.show()
