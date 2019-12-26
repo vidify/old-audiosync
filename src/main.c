@@ -93,12 +93,14 @@ int main(int argc, char *argv[]) {
         // Waits for both threads to finish their interval.
         while (cap.len < intervals[i] || down.len < intervals[i]) {
             pthread_cond_wait(&thread_done, &global_mutex);
-            printf("Woke up (%d): %ld %ld\n", i, cap.len, down.len);
         }
+        printf(">> Next interval (%d): cap=%ld down=%ld\n", i, cap.len, down.len);
 
         // Runs the cross correlation. If the results have a good enough
         // confidence, the function ends and returns the obtained value.
-        err = cross_correlation(out1, out2, intervals[i], &lag, &confidence);
+        if (cross_correlation(out1, out2, intervals[i], &lag, &confidence) < 0) {
+            continue;
+        }
         if (confidence > MIN_CONFIDENCE) {
             // Warning, pthread_cancel is aggressive.
             pthread_cancel(down_th);
@@ -107,7 +109,6 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    printf("Final: %f ms of delay with a confidence of %f\n", lag, confidence);
 
 finish:
     if (out1) fftw_free(out1);

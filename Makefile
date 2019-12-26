@@ -9,7 +9,7 @@ all: main
 debug: CFLAGS += -DDEBUG
 debug: main
 
-release: CFLAGS += -Ofast
+release: CFLAGS += -O3
 release: main
 
 main: main.o cross_correlation.o linux_capture.o linux_download.o
