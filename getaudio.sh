@@ -7,7 +7,7 @@ function record() {
     # Getting the default sink with pacmd list-sinks because the -i default
     # option for ffmpeg sucks.
     defaultSink=$(pacmd list-sinks | grep '*' | awk '/index/ {print $3}')
-    ffmpeg $FFMPEG_FLAGS -f pulse -i "$defaultSink" "$1"
+    ffmpeg -f pulse -i "$defaultSink" $FFMPEG_FLAGS "$1"
 }
 
 
@@ -15,7 +15,7 @@ function download() {
     echo "Downloading $2 into $1"
     url=$(youtube-dl --get-url $1 -f bestaudio)
     echo "$url"
-    ffmpeg $FFMPEG_FLAGS -i "$url" "$2"
+    ffmpeg -i "$url" $FFMPEG_FLAGS "$2"
 }
 
 if [ "$1" == "record" ]; then
