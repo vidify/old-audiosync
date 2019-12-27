@@ -1,7 +1,9 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdint.h>
+#include <pthread.h>
 #include <sys/wait.h>
+#include <sys/types.h>
+#include <signal.h>
 #include <unistd.h>
 #include "../global.h"
 
@@ -16,14 +18,14 @@ void *download(void *arg) {
     int wav_pipe[2];
     if (pipe(wav_pipe) < 0) {
         perror("pipe()");
-        goto fail;
+        goto finish;
     }
 
     pid_t pid = fork();
     if (pid < 0) {
         // fork() failed
         perror("fork()");
-        goto fail;
+        goto finish;
     } else if (pid == 0) {
         // Child process (ffmpeg)
         close(wav_pipe[READ_END]);  // Child won't read the pipe
@@ -47,27 +49,34 @@ void *download(void *arg) {
 
         // Reading pipe
         int interval_count = 0;
-        for (data->len = 0; data->len < data->total_len; ++(data->len)) {
+        data->len = 0;
+        while (data->len < data->total_len) {
+            // Checking if the main process has indicated that this thread
+            // should end.
+            if (*(data->end) != 0) {
+                kill(pid, SIGKILL);
+                break;
+            }
+
             // TODO read bigger chunks
             if (read(wav_pipe[READ_END], (data->buf + data->len), sizeof(double)) < 0) {
                 break;
             }
 
+            // Signaling the main thread when a full interval is read.
             if (data->len >= data->intervals[interval_count]) {
                 pthread_cond_signal(data->done);
                 interval_count++;
             }
+
+            ++(data->len);
         }
 
         close(wav_pipe[READ_END]);
         wait(NULL);
-        printf("Finished download pipe. Read %ld bytes\n", data->len);
-
     }
 
-    pthread_exit(NULL);
 
-fail:
-
+finish:
     pthread_exit(NULL);
 }

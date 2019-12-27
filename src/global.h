@@ -26,6 +26,7 @@ struct down_data {
     const int n_intervals;
     pthread_mutex_t *mutex;
     pthread_cond_t *done;
+    int *end;
 };
 struct cap_data {
     double *buf;
@@ -35,6 +36,7 @@ struct cap_data {
     const int n_intervals;
     pthread_mutex_t *mutex;
     pthread_cond_t *done;
+    int *end;
 };
 
 #endif /* _H_DEFINES */
