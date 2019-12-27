@@ -1,5 +1,6 @@
 #!/bin/bash
 
+# This benchmark was used with the old version, commit aaf189457f87af7f49a6c2d3c57c609dee12ad60
 
 NUM=25
 time_c=0
