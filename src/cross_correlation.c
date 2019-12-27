@@ -6,12 +6,11 @@
 #include <pthread.h>
 #include <complex.h>
 #include <fftw3.h>
+#include "global.h"
 
 
 // Global mutex used for multithreading.
 static pthread_mutex_t MUTEX;
-// Conversion from the used sample rate to milliseconds: 48000 / 1000
-#define SAMPLES_TO_MS 48
 
 
 // Data structure used to pass parameters to concurrent FFTW-related functions.
@@ -50,18 +49,28 @@ static void *fft(void *thread_arg) {
 // Calculating the cross-correlation between two signals `a` and `b`:
 //     xcross = ifft(fft(a) * conj(fft(b)))
 //
-// Both datasets should have the same size. They should be zero-padded to
-// length 2N-1. This is needed to calculate the circular cross-correlation
-// rather than the regular cross-correlation.
+// Both datasets should have the same size. They shouldn't be zero-padded,
+// since this function will already do so to length 2N-1. This is needed to
+// calculate the circular cross-correlation rather than the regular
+// cross-correlation.
 //
 // Returns the lag in milliseconds the second data set has over the first
 // one, with a confidence between -1 and 1.
 //
 // In case of error, the function returns -1
-int cross_correlation(double *data1, double *data2, const size_t length,
+int cross_correlation(double *input1, double *input2, const size_t input_length,
                       double *displacement, double *coefficient) {
     // Benchmarking the matching function
     clock_t start = clock();
+
+    // Zero padding the data.
+    const size_t length = input_length * 2;
+    double *data1 = fftw_alloc_real(length);
+    memcpy(data1, input1, input_length * sizeof(double));
+    memset(data1 + input_length, 0, (length - input_length) * sizeof(double));
+    double *data2 = fftw_alloc_real(length);
+    memcpy(data2, input2, input_length * sizeof(double));
+    memset(data2 + input_length, 0, (length - input_length) * sizeof(double));
 
     // Getting the complex results from both FFT. The output length for the
     // complex numbers is n/2+1.
@@ -119,11 +128,10 @@ int cross_correlation(double *data1, double *data2, const size_t length,
     // Shifting the first array to the left by the lag, reusing the previous
     // results array.
     // The zero-padding can be ignored from now on.
-    const size_t real_length = length / 2;
     size_t shift_i;
-    memcpy(results, data1, sizeof(double) * real_length);
-    for (size_t i = 0; i < real_length; ++i) {
-        shift_i = (i + lag + real_length) % real_length;
+    memcpy(results, data1, sizeof(double) * input_length);
+    for (size_t i = 0; i < input_length; ++i) {
+        shift_i = (i + lag + input_length) % input_length;
         data1[i] = results[shift_i];
     }
 
@@ -132,18 +140,18 @@ int cross_correlation(double *data1, double *data2, const size_t length,
     // 1. The average for both datasets.
     double sum1 = 0.0;
     double sum2 = 0.0;
-    for (size_t i = 0; i < real_length; ++i) {
+    for (size_t i = 0; i < input_length; ++i) {
          sum1 += data1[i];
          sum2 += data2[i];
     }
-    double avg1 = sum1 / real_length;
-    double avg2 = sum2 / real_length;
+    double avg1 = sum1 / input_length;
+    double avg2 = sum2 / input_length;
     // 2. Applying the definition formula.
     double diff1, diff2;
     double diffprod = 0.0;
     double diff1_squared = 0.0;
     double diff2_squared = 0.0;
-    for (size_t i = 0; i < real_length; ++i) {
+    for (size_t i = 0; i < input_length; ++i) {
         diff1 = data1[i] - avg1;
         diff2 = data2[i] - avg2;
         diffprod += diff1 * diff2;
@@ -152,6 +160,11 @@ int cross_correlation(double *data1, double *data2, const size_t length,
     }
     *coefficient = diffprod / sqrt(diff1_squared * diff2_squared);
 
+    // Checking that the resulting coefficient isn't NaN
+    if (*coefficient != *coefficient) {
+        goto fail;
+    }
+
     // Conversion to milliseconds with 48000KHz as the sample rate.
     *displacement = (double) lag / SAMPLES_TO_MS;
 
@@ -159,24 +172,24 @@ int cross_correlation(double *data1, double *data2, const size_t length,
     fftw_free(arr2);
     fftw_free(results);
 
-    printf("Result obtained in %f secs\n", (clock() - start) / (double) CLOCKS_PER_SEC);
-    printf("%ld frames of delay with a confidence of %f\n", lag, *coefficient);
+    printf(">> Result obtained in %f secs\n", (clock() - start) / (double) CLOCKS_PER_SEC);
+    printf(">> %ld frames of delay with a confidence of %f\n", lag, *coefficient);
 
 #ifdef DEBUG
     // Plotting the output with gnuplot
-    printf("Plotting fixed audio tracks\n");
+    printf(">> Saving plot to '%ld.png'\n", input_length);
     FILE *gnuplot = popen("gnuplot", "w");
+    fprintf(gnuplot, "set term 'png'\n");
+    fprintf(gnuplot, "set output 'images/%ld.png'\n", input_length);
     fprintf(gnuplot, "plot '-' with dots, '-' with dots\n");
-    for (int i = 0; i < real_length; ++i)
-        fprintf(gnuplot, "%f\n", data2[i]);
-    fprintf(gnuplot, "e\n");
-    // The second audio file starts at samplesDelay
-    for (int i = 0; i < real_length; ++i)
+    for (int i = 0; i < input_length; ++i)
         fprintf(gnuplot, "%f\n", data1[i]);
     fprintf(gnuplot, "e\n");
+    // The second audio file starts at samplesDelay
+    for (int i = 0; i < input_length; ++i)
+        fprintf(gnuplot, "%f\n", data2[i]);
+    fprintf(gnuplot, "e\n");
     fflush(gnuplot);
-    printf("Press enter to continue\n");
-    getchar();
     pclose(gnuplot);
 #endif
 
@@ -187,5 +200,5 @@ fail:
     if (arr2) fftw_free(arr2);
     if (results) fftw_free(results);
 
-    return 1;
+    return -1;
 }
