@@ -1,8 +1,7 @@
 CC = gcc
-# Dependencies: fftw3, pulseaudio and libsndfile.
 # It only works on Linux for now. I'll make it available for Windows later
 # on when everything is almost finished.
-CFLAGS = -std=c11 -Wall -lfftw3 -lm -pthread -lpulse-simple -lpulse
+CFLAGS = -std=c11 -Wall -lfftw3 -lm -pthread
 
 all: main
 

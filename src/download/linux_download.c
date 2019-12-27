@@ -28,9 +28,12 @@ void *download(void *arg) {
         // Child process (ffmpeg)
         close(wav_pipe[READ_END]);  // Child won't read the pipe
 
-        char *args[] = {"ffmpeg", "-y", "-ac", NUM_CHANNELS_STR, "-r",
-                        SAMPLE_RATE_STR, "-to", "15", "-i", data->url, "-f",
-                        "f64le", "pipe:1", NULL};
+        // The arguments order is important
+        char *args[] = {
+            "ffmpeg", "-y", "-to", "15", "-i", data->url, "-ac",
+            NUM_CHANNELS_STR, "-r", SAMPLE_RATE_STR, "-f", "f64le", "pipe:1",
+            NULL
+        };
         dup2(wav_pipe[WRITE_END], 1);  // Redirecting stdout to the pipe
 #ifndef DEBUG
         freopen("/dev/null", "w", stderr);  // Ignoring stderr

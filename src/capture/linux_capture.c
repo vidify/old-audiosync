@@ -32,9 +32,12 @@ void *capture(void *arg) {
         // Child process (ffmpeg)
         close(wav_pipe[READ_END]);  // Child won't read the pipe
         // ffmpeg $FFMPEG_FLAGS -f pulse -i "$defaultSink" "$1"
-        char *args[] = {"ffmpeg", "-y", "-ac", NUM_CHANNELS_STR, "-r",
-                        SAMPLE_RATE_STR, "-to", "15", "-f", "pulse", "-i",
-                        "default", "-f", "f64le", "pipe:1", NULL};
+        // The order of the arguments is important
+        char *args[] = {
+            "ffmpeg", "-y", "-to", "15", "-f", "pulse", "-i", "default",
+            "-ac", NUM_CHANNELS_STR, "-r", SAMPLE_RATE_STR, "-f", "f64le",
+            "pipe:1", NULL
+        };
         dup2(wav_pipe[WRITE_END], 1);  // Redirecting stdout to the pipe
 #ifndef DEBUG
         freopen("/dev/null", "w", stderr);  // Ignoring stderr

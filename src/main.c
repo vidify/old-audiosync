@@ -48,21 +48,18 @@ int main(int argc, char *argv[]) {
     pthread_mutex_t global_mutex;
     pthread_cond_t thread_done;
 
-    // Actual size of the data, having in account the sample rate and that
-    // half of its size will be zero-padded.
     const size_t length = intervals[n_intervals-1];
+    double *arr1;
+    arr1 = malloc(length * sizeof(*arr1));
+    double *arr2;
+    arr2 = malloc(length * sizeof(*arr2));
     int err = 1;
-
-    // The arrays are initialized with FFTW's method because cross_correlation
-    // uses this library.
-    double *out1 = fftw_alloc_real(length);
-    double *out2 = fftw_alloc_real(length);
 
     // Launching the threads
     pthread_t down_th, cap_th;
     struct down_data down = {
         .url = argv[1],
-        .buf = out1,
+        .buf = arr1,
         .total_len = length,
         .len = 0,
         .intervals = intervals,
@@ -71,7 +68,7 @@ int main(int argc, char *argv[]) {
         .done = &thread_done
     };
     struct cap_data cap = {
-        .buf = out2,
+        .buf = arr2,
         .total_len = length,
         .len = 0,
         .intervals = intervals,
@@ -98,9 +95,10 @@ int main(int argc, char *argv[]) {
 
         // Runs the cross correlation. If the results have a good enough
         // confidence, the function ends and returns the obtained value.
-        if (cross_correlation(out1, out2, intervals[i], &lag, &confidence) < 0) {
+        if (cross_correlation(arr1, arr2, intervals[i], &lag, &confidence) < 0) {
             continue;
         }
+
         if (confidence > MIN_CONFIDENCE) {
             // Warning, pthread_cancel is aggressive.
             pthread_cancel(down_th);
@@ -111,8 +109,8 @@ int main(int argc, char *argv[]) {
 
 
 finish:
-    if (out1) fftw_free(out1);
-    if (out2) fftw_free(out2);
+    if (arr1) free(arr1);
+    if (arr2) free(arr2);
 
     return err;
 }
