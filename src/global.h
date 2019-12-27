@@ -22,7 +22,7 @@ struct down_data {
     double *buf;
     size_t total_len;
     size_t len;
-    const int *intervals;
+    const size_t *intervals;
     const int n_intervals;
     pthread_mutex_t *mutex;
     pthread_cond_t *done;
@@ -32,7 +32,7 @@ struct cap_data {
     double *buf;
     size_t total_len;
     size_t len;
-    const int *intervals;
+    const size_t *intervals;
     const int n_intervals;
     pthread_mutex_t *mutex;
     pthread_cond_t *done;

@@ -14,7 +14,7 @@
 // Returns the delay in milliseconds the second data set has over the first
 // one, with a confidence between -1 and 1.
 int cross_correlation(double *data1, double *data2, const size_t length,
-                      double *displacement, double *coefficient);
+                      int *displacement, double *coefficient);
 
 
 #endif /* _H_CROSS_CORRELATION */
