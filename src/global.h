@@ -19,9 +19,6 @@
 // The minimum cross-correlation coefficient accepted.
 #define MIN_CONFIDENCE 0.75
 
-// The buffer size used in the capture and download modules.
-#define READ_BUFSIZE 8192
-
 // Struct used to pass variables to pthreads.
 struct thread_data {
     double *buf;

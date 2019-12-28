@@ -37,3 +37,6 @@ lib/
 lib64
 pyvenv.cfg
 bin/
+dist/
+build/
+*.egg-info/

@@ -78,7 +78,7 @@ PyObject *audiosync_get_lag(PyObject *self, PyObject *args) {
         .end = &end
     };
     struct thread_data down_params = {
-        .buf = arr1,
+        .buf = arr2,
         .total_len = length,
         .len = 0,
         .intervals = intervals,

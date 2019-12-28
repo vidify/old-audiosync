@@ -1,7 +1,6 @@
 #ifndef _H_FFMPEG_PIPE
 #define _H_FFMPEG_PIPE
 
-
 #include "global.h"
 
 

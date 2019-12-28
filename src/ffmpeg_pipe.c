@@ -20,7 +20,7 @@ void read_pipe(struct thread_data *data, char *args[]) {
 
     pid_t pid = fork();
     if (pid < 0) {
-        perror("fork()");
+        perror("fork");
         return;
     } else if (pid == 0) {
         // Child process (ffmpeg), doesn't read the pipe.
@@ -28,18 +28,17 @@ void read_pipe(struct thread_data *data, char *args[]) {
 
         // Redirecting stdout to the pipe
         dup2(wav_pipe[WRITE_END], 1);
-
 #ifndef DEBUG
         // Ignoring stderr when debug mode is disabled
         freopen("/dev/null", "w", stderr);
 #endif
+
         execvp("ffmpeg", args);
         printf("ffmpeg command failed.\n");
     } else {
-        // Parent process (reading the output pipe)
-        close(wav_pipe[WRITE_END]);  // Parent won't write the pipe
+        // Parent process (reading the output pipe), doesn't write.
+        close(wav_pipe[WRITE_END]);
 
-        // Reading pipe
         int interval_count = 0;
         data->len = 0;
         while (data->len < data->total_len) {
@@ -50,12 +49,14 @@ void read_pipe(struct thread_data *data, char *args[]) {
                 break;
             }
 
-            // Reading the data from ffmpeg in chunks of READ_BUFSIZE.
-            if (read(wav_pipe[READ_END], (data->buf + data->len),
-                     READ_BUFSIZE * sizeof(*(data->buf))) < 0) {
+            // Reading the data from ffmpeg one by one. If a buffer is used,
+            // the read data is incorrect. I should investigate more about this
+            // though, as I don't fully understand why this happens.
+            if (read(wav_pipe[READ_END], (data->buf + data->len), sizeof(*(data->buf))) < 0) {
+                perror("READ");
                 break;
             }
-            data->len += READ_BUFSIZE;
+            data->len++;
 
             // Signaling the main thread when a full interval is read.
             if (data->len >= data->intervals[interval_count]) {
