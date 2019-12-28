@@ -2,7 +2,7 @@ from setuptools import setup, Extension
 
 audiosync = Extension(
     'audiosync',
-    define_macros = [('DEBUG', '1')],
+    #  define_macros = [('DEBUG', '1')],
     include_dirs = ['/usr/local/include'],
     libraries = ['m', 'pthread', 'fftw3'],
     library_dirs = ['/usr/local/lib'],
