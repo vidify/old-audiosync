@@ -4,8 +4,8 @@
 
 
 static PyMethodDef AudiosyncMethods[] = {
-	{"get_lag", audiosync_get_lag, METH_VARARGS, "Obtain the currently playing"
-    "song's lag in respect to the url provided from YouTube."},
+	{"get_lag", audiosync_get_lag, METH_VARARGS, "Obtain the provided YouTube"
+     " song's lag in respect to the currently playing track."},
 	{NULL, NULL, 0, NULL}
 };
 

@@ -4,8 +4,8 @@
 #include <stdlib.h>
 #include <pthread.h>
 
-// Sample rate used. It has to be 48000 because most YouTube videos can only
-// be downloaded at that rate, and both audio files must have the same one.
+// Information about the audio tracks. Both must have the same formats for
+// the analysis to work.
 #define NUM_CHANNELS 1
 #define NUM_CHANNELS_STR "1"
 #define SAMPLE_RATE 48000
@@ -19,7 +19,7 @@
 // The minimum cross-correlation coefficient accepted.
 #define MIN_CONFIDENCE 0.75
 
-// Struct used to pass variables to pthreads.
+// Structs used to pass the parameters to the threads.
 struct thread_data {
     double *buf;
     size_t total_len;
