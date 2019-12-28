@@ -143,8 +143,8 @@ int cross_correlation(double *input1, double *input2, const size_t input_length,
         }
     }
 
-    // Shifting the first array to the left by the lag, reusing the previous
-    // results array.
+    // Shifting the first array to the left or to the right by the calculated
+    // lag, reusing the previous results array.
     // The zero-padding can be ignored from now on.
     size_t shift_i;
     memcpy(results, data1, sizeof(double) * input_length);

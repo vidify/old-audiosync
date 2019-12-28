@@ -12,7 +12,28 @@ audiosync = Extension(
 )
 
 setup(
-    name = 'audiosync',
+    name = 'vidify-audiosync',
     version = '1.0',
+    description='Vidify extension to synchronize a YouTube video with the'
+    ' audio playing on your computer.',
+    long_description=open('README.md', 'r').read(),
+    long_description_content_type='text/markdown',
+    url='https://github.com/marioortizmanero/vidify-audiosync',
+    license='MIT',
+
+    author='Mario O.M.',
+    author_email='marioortizmanero@gmail.com',
+    maintainer='Mario O.M.',
+    maintainer_email='marioortizmanero@gmail.com',
+
+    classifiers=[
+        'Development Status :: 2 - Pre-Alpha',
+        'Intended Audience :: End Users/Desktop',
+        'Topic :: Multimedia :: Sound/Audio :: Analysis',
+        'License :: OSI Approved :: MIT License',
+        'Programming Language :: C'
+    ],
+    keywords='audio synchronization cross-correlation pearson coefficient fftw',
+    python_requires='>=3.6',
     ext_modules = [audiosync]
 )
