@@ -59,7 +59,7 @@ static void *fft(void *thread_arg) {
 //
 // In case of error, the function returns -1
 int cross_correlation(double *input1, double *input2, const size_t input_length,
-                      double *displacement, double *coefficient) {
+                      int *displacement, double *coefficient) {
     // Benchmarking the matching function
     clock_t start = clock();
 
@@ -71,6 +71,24 @@ int cross_correlation(double *input1, double *input2, const size_t input_length,
     double *data2 = fftw_alloc_real(length);
     memcpy(data2, input2, input_length * sizeof(double));
     memset(data2 + input_length, 0, (length - input_length) * sizeof(double));
+
+#ifdef DEBUG
+    // Plotting the output with gnuplot
+    printf(">> Saving initial plot to '%ld_original.png'\n", input_length);
+    FILE *gnuplot2 = popen("gnuplot", "w");
+    fprintf(gnuplot2, "set term 'png'\n");
+    fprintf(gnuplot2, "set output 'images/%ld_original.png'\n", input_length);
+    fprintf(gnuplot2, "plot '-' with lines title 'data1', '-' with lines title 'data2'\n");
+    for (size_t i = 0; i < input_length; ++i)
+        fprintf(gnuplot2, "%f\n", data1[i]);
+    fprintf(gnuplot2, "e\n");
+    // The second audio file starts at samplesDelay
+    for (size_t i = 0; i < input_length; ++i)
+        fprintf(gnuplot2, "%f\n", data2[i]);
+    fprintf(gnuplot2, "e\n");
+    fflush(gnuplot2);
+    pclose(gnuplot2);
+#endif
 
     // Getting the complex results from both FFT. The output length for the
     // complex numbers is n/2+1.
@@ -125,8 +143,8 @@ int cross_correlation(double *input1, double *input2, const size_t input_length,
         }
     }
 
-    // Shifting the first array to the left by the lag, reusing the previous
-    // results array.
+    // Shifting the first array to the left or to the right by the calculated
+    // lag, reusing the previous results array.
     // The zero-padding can be ignored from now on.
     size_t shift_i;
     memcpy(results, data1, sizeof(double) * input_length);
@@ -166,27 +184,26 @@ int cross_correlation(double *input1, double *input2, const size_t input_length,
     }
 
     // Conversion to milliseconds with 48000KHz as the sample rate.
-    *displacement = (double) lag / SAMPLES_TO_MS;
+    *displacement = lag / SAMPLES_TO_MS;
 
     fftw_free(arr1);
     fftw_free(arr2);
     fftw_free(results);
 
+#ifdef DEBUG
     printf(">> Result obtained in %f secs\n", (clock() - start) / (double) CLOCKS_PER_SEC);
     printf(">> %ld frames of delay with a confidence of %f\n", lag, *coefficient);
-
-#ifdef DEBUG
     // Plotting the output with gnuplot
     printf(">> Saving plot to '%ld.png'\n", input_length);
     FILE *gnuplot = popen("gnuplot", "w");
     fprintf(gnuplot, "set term 'png'\n");
     fprintf(gnuplot, "set output 'images/%ld.png'\n", input_length);
-    fprintf(gnuplot, "plot '-' with dots, '-' with dots\n");
-    for (int i = 0; i < input_length; ++i)
+    fprintf(gnuplot, "plot '-' with lines title 'data1', '-' with lines title 'data2'\n");
+    for (size_t i = 0; i < input_length; ++i)
         fprintf(gnuplot, "%f\n", data1[i]);
     fprintf(gnuplot, "e\n");
     // The second audio file starts at samplesDelay
-    for (int i = 0; i < input_length; ++i)
+    for (size_t i = 0; i < input_length; ++i)
         fprintf(gnuplot, "%f\n", data2[i]);
     fprintf(gnuplot, "e\n");
     fflush(gnuplot);
