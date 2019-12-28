@@ -31,3 +31,9 @@
 *.out
 *.app
 main
+
+# Other
+lib/
+lib64
+pyvenv.cfg
+bin/

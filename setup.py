@@ -1,4 +1,4 @@
-from distutils.core import setup, Extension
+from setuptools import setup, Extension
 
 audiosync = Extension(
     'audiosync',
@@ -7,8 +7,12 @@ audiosync = Extension(
     libraries = ['m', 'pthread', 'fftw3'],
     library_dirs = ['/usr/local/lib'],
     sources = ['src/bind.c', 'src/audiosync.c', 'src/cross_correlation.c',
-               'src/download/linux_download.c', 'src/capture/linux_capture.c'])
+               'src/ffmpeg_pipe.c', 'src/download/linux_download.c',
+               'src/capture/linux_capture.c']
+)
 
-setup (name = 'audiosync',
-       version = '1.0',
-       ext_modules = [audiosync])
+setup(
+    name = 'audiosync',
+    version = '1.0',
+    ext_modules = [audiosync]
+)

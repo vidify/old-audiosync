@@ -29,7 +29,6 @@ PyObject *audiosync_get_lag(PyObject *self, PyObject *args) {
     if (!PyArg_ParseTuple(args, "s", &url)) {
             return NULL;
     }
-    printf("AAAA %s\n", url);
 
     // The algorithm will be run in these intervals. When both threads signal
     // that their interval is finished, the cross correlation will be
@@ -68,8 +67,7 @@ PyObject *audiosync_get_lag(PyObject *self, PyObject *args) {
     pthread_mutex_t global_mutex;
     pthread_mutex_init(&global_mutex, NULL);
     pthread_cond_t thread_done;
-    struct down_data down = {
-        .url = url,
+    struct thread_data cap_params = {
         .buf = arr1,
         .total_len = length,
         .len = 0,
@@ -79,8 +77,8 @@ PyObject *audiosync_get_lag(PyObject *self, PyObject *args) {
         .done = &thread_done,
         .end = &end
     };
-    struct cap_data cap = {
-        .buf = arr2,
+    struct thread_data down_params = {
+        .buf = arr1,
         .total_len = length,
         .len = 0,
         .intervals = intervals,
@@ -89,11 +87,17 @@ PyObject *audiosync_get_lag(PyObject *self, PyObject *args) {
         .done = &thread_done,
         .end = &end
     };
-    if (pthread_create(&cap_th, NULL, &capture, (void *) &cap)) {
+    // Data structure passed to the download thread. It's a different type
+    // because it also needs the url of the video to download.
+    struct down_data down_th_params = {
+        .url = url,
+        .th_data = &down_params
+    };
+    if (pthread_create(&cap_th, NULL, &capture, (void *) &cap_params)) {
         perror("pthread_create");
         goto finish;
     }
-    if (pthread_create(&down_th, NULL, &download, (void *) &down)) {
+    if (pthread_create(&down_th, NULL, &download, (void *) &down_th_params)) {
         perror("pthread_create");
         goto finish;
     }
@@ -102,12 +106,12 @@ PyObject *audiosync_get_lag(PyObject *self, PyObject *args) {
     double confidence;
     for (int i = 0; i < n_intervals; ++i) {
         // Waits for both threads to finish their interval.
-        while (cap.len < intervals[i] || down.len < intervals[i]) {
+        while (cap_params.len < intervals[i] || down_params.len < intervals[i]) {
             pthread_cond_wait(&thread_done, &global_mutex);
         }
 
 #ifdef DEBUG
-        printf(">> Next interval (%d): cap=%ld down=%ld\n", i, cap.len, down.len);
+        printf(">> Next interval (%d): cap=%ld down=%ld\n", i, cap_params.len, down_params.len);
 #endif
 
         // Running the cross correlation algorithm and checking for errors.
@@ -115,11 +119,13 @@ PyObject *audiosync_get_lag(PyObject *self, PyObject *args) {
             continue;
         }
 
-            printf("RESULT: lag=%d, confidence=%f\n", lag, confidence);
+#ifdef DEBUG
+        printf("RESULT: lag=%d, confidence=%f\n", lag, confidence);
+#endif
+
         // If the returned confidence is higher or equal than the minimum
         // required, the program ends with the obtained result.
         if (confidence >= MIN_CONFIDENCE) {
-            printf("RESULT: lag=%d, confidence=%f\n", lag, confidence);
             // Indicating the threads to finish, and waiting for them to
             // finish safely.
             end = 1;

@@ -172,16 +172,15 @@ int cross_correlation(double *input1, double *input2, const size_t input_length,
     fftw_free(arr2);
     fftw_free(results);
 
+#ifdef DEBUG
     printf(">> Result obtained in %f secs\n", (clock() - start) / (double) CLOCKS_PER_SEC);
     printf(">> %ld frames of delay with a confidence of %f\n", lag, *coefficient);
-
-#ifdef DEBUG
     // Plotting the output with gnuplot
     printf(">> Saving plot to '%ld.png'\n", input_length);
     FILE *gnuplot = popen("gnuplot", "w");
     fprintf(gnuplot, "set term 'png'\n");
     fprintf(gnuplot, "set output 'images/%ld.png'\n", input_length);
-    fprintf(gnuplot, "plot '-' with dots, '-' with dots\n");
+    fprintf(gnuplot, "plot '-' with lines title 'data1', '-' with lines title 'data2'\n");
     for (size_t i = 0; i < input_length; ++i)
         fprintf(gnuplot, "%f\n", data1[i]);
     fprintf(gnuplot, "e\n");
