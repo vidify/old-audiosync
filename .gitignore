@@ -40,3 +40,5 @@ bin/
 dist/
 build/
 *.egg-info/
+etc/
+share/
