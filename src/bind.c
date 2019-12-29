@@ -2,6 +2,7 @@
 #include <Python.h>
 #include "audiosync.h"
 
+PyObject *audiosync_get_lag(PyObject *self, PyObject *args);
 
 static PyMethodDef VidifyAudiosyncMethods[] = {
 	{"get_lag", audiosync_get_lag, METH_VARARGS, "Obtain the provided YouTube"
@@ -19,4 +20,14 @@ static struct PyModuleDef vidify_audiosync = {
 
 PyMODINIT_FUNC PyInit_vidify_audiosync(void) {
 	return PyModule_Create(&vidify_audiosync);
+}
+
+PyObject *audiosync_get_lag(PyObject *self, PyObject *args) {
+    char *url;
+    if (!PyArg_ParseTuple(args, "s", &url)) {
+            return NULL;
+    }
+
+    int ret = get_lag(url);
+    return PyLong_FromLong(ret);
 }

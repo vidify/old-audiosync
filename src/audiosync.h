@@ -2,10 +2,7 @@
 #define _H_AUDIOSYNC
 
 
-#include <Python.h>
-
-
-PyObject *audiosync_get_lag(PyObject *self, PyObject *args);
+int get_lag(char *url);
 
 
 #endif /* _H_AUDIOSYNC */

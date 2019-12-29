@@ -60,7 +60,9 @@ void read_pipe(struct thread_data *data, char *args[]) {
 
             // Signaling the main thread when a full interval is read.
             if (data->len >= data->intervals[interval_count]) {
+                pthread_mutex_lock(data->mutex);
                 pthread_cond_signal(data->done);
+                pthread_mutex_unlock(data->mutex);
                 interval_count++;
             }
         }

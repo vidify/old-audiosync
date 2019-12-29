@@ -1,0 +1,6 @@
+# Ignore everything in this directory (the images and etc), because the
+# directory is needed for Travis CI builds.
+*
+
+# Except for this file
+!.gitignore

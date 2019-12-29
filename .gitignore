@@ -43,3 +43,4 @@ build/
 etc/
 share/
 tests/tests
+examples/example

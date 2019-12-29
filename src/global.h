@@ -26,7 +26,7 @@ struct thread_data {
     size_t total_len;
     size_t len;
     const size_t *intervals;
-    const int n_intervals;
+    const size_t n_intervals;
     pthread_mutex_t *mutex;
     pthread_cond_t *done;
     int *end;

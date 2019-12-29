@@ -12,15 +12,13 @@
 #include "global.h"
 
 
-// Global mutex used for multithreading.
-static pthread_mutex_t MUTEX;
-
 
 // Data structure used to pass parameters to concurrent FFTW-related functions.
 struct fftw_data {
     double *real;
     double complex *cpx;
     size_t length;
+    pthread_mutex_t *mutex;
 };
 
 
@@ -32,18 +30,18 @@ static void *fft(void *thread_arg) {
 
     // Initializing the plan: the only thread-safe call in FFTW is
     // fftw_execute, so the plan has to be created and destroyed with a lock.
-    pthread_mutex_lock(&MUTEX);
+    pthread_mutex_lock(data->mutex);
     fftw_plan p = fftw_plan_dft_r2c_1d(data->length, data->real, data->cpx,
                                        FFTW_ESTIMATE);
-    pthread_mutex_unlock(&MUTEX);
+    pthread_mutex_unlock(data->mutex);
 
     // Actually executing the FFT
     fftw_execute(p);
 
     // Destroying the plan and terminating the thread
-    pthread_mutex_lock(&MUTEX);
+    pthread_mutex_lock(data->mutex);
     fftw_destroy_plan(p);
-    pthread_mutex_unlock(&MUTEX);
+    pthread_mutex_unlock(data->mutex);
     pthread_exit(NULL);
 }
 
@@ -66,13 +64,16 @@ int cross_correlation(double *input1, double *input2, const size_t input_length,
     // Benchmarking the matching function
     clock_t start = clock();
 #endif
+    double *data1, *data2, *results;
+    double complex *arr1, *arr2;
+    const size_t length = input_length * 2;
+    int ret = -1;
 
     // Zero padding the data.
-    const size_t length = input_length * 2;
-    double *data1 = fftw_alloc_real(length);
+    data1 = fftw_alloc_real(length);
     memcpy(data1, input1, input_length * sizeof(double));
     memset(data1 + input_length, 0, (length - input_length) * sizeof(double));
-    double *data2 = fftw_alloc_real(length);
+    data2 = fftw_alloc_real(length);
     memcpy(data2, input2, input_length * sizeof(double));
     memset(data2 + input_length, 0, (length - input_length) * sizeof(double));
 
@@ -97,29 +98,33 @@ int cross_correlation(double *input1, double *input2, const size_t input_length,
     // Getting the complex results from both FFT. The output length for the
     // complex numbers is n/2+1.
     const size_t cpx_length = (length / 2) + 1;
-    double complex *arr1 = fftw_alloc_complex(cpx_length);
-    double complex *arr2 = fftw_alloc_complex(cpx_length);
-    double *results = fftw_alloc_real(length);
+    arr1 = fftw_alloc_complex(cpx_length);
+    arr2 = fftw_alloc_complex(cpx_length);
+    results = fftw_alloc_real(length);
 
     // Initializing the threads and running them
+    pthread_mutex_t fft_mutex;
+    pthread_mutex_init(&fft_mutex, NULL);
     pthread_t fft1_thread, fft2_thread;
     struct fftw_data fft1_data = {
         .real = data1,
         .cpx = arr1,
-        .length = length
+        .length = length,
+        .mutex = &fft_mutex
     };
     struct fftw_data fft2_data = {
         .real = data2,
         .cpx = arr2,
-        .length = length
+        .length = length,
+        .mutex = &fft_mutex
     };
     if (pthread_create(&fft1_thread, NULL, &fft, (void *) &fft1_data)) {
         perror("pthread_create");
-        goto fail;
+        goto finish;
     }
     if (pthread_create(&fft2_thread, NULL, &fft, (void *) &fft2_data)) {
         perror("pthread_create");
-        goto fail;
+        goto finish;
     }
     pthread_join(fft1_thread, NULL);
     pthread_join(fft2_thread, NULL);
@@ -184,17 +189,13 @@ int cross_correlation(double *input1, double *input2, const size_t input_length,
 
     // Checking that the resulting coefficient isn't NaN
     if (*coefficient != *coefficient) {
-        goto fail;
+        goto finish;
     }
 
     // The returned value should be negative if the displacement is larger
     // than the size of the input array (meaning that the displacement is
     // inverted).
     *displacement = (lag < input_length) ? lag : -(lag % input_length);
-
-    fftw_free(arr1);
-    fftw_free(arr2);
-    fftw_free(results);
 
 #ifdef DEBUG
     printf(">> Result obtained in %f secs\n", (clock() - start) / (double) CLOCKS_PER_SEC);
@@ -216,12 +217,14 @@ int cross_correlation(double *input1, double *input2, const size_t input_length,
     pclose(gnuplot);
 #endif
 
-    return 0;
+    ret = 0;
 
-fail:
+finish:
+    if (data1) fftw_free(data1);
+    if (data2) fftw_free(data2);
     if (arr1) fftw_free(arr1);
     if (arr2) fftw_free(arr2);
     if (results) fftw_free(results);
 
-    return -1;
+    return ret;
 }
