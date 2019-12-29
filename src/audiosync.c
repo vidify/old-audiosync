@@ -56,19 +56,10 @@ int get_lag(char *url) {
 
     // Launching the threads
     pthread_t down_th, cap_th;
-    pthread_mutex_t global_mutex;
-    pthread_cond_t thread_done;
-
+    pthread_mutex_t global_mutex = PTHREAD_MUTEX_INITIALIZER;
+    pthread_cond_t thread_done = PTHREAD_COND_INITIALIZER;
     memset((void *) &down_th, 0, sizeof (down_th));
     memset((void *) &cap_th, 0, sizeof (cap_th));
-    if (pthread_mutex_init(&global_mutex, NULL) < 0) {
-        perror("pthread_mutex_init");
-        goto finish;
-    }
-    if (pthread_cond_init(&thread_done, NULL) < 0) {
-        perror("pthread_cond_init");
-        goto finish;
-    }
     struct thread_data cap_params = {
         .buf = arr1,
         .total_len = length,

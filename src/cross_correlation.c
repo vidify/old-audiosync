@@ -103,8 +103,7 @@ int cross_correlation(double *input1, double *input2, const size_t input_length,
     results = fftw_alloc_real(length);
 
     // Initializing the threads and running them
-    pthread_mutex_t fft_mutex;
-    pthread_mutex_init(&fft_mutex, NULL);
+    pthread_mutex_t fft_mutex = PTHREAD_MUTEX_INITIALIZER;
     pthread_t fft1_thread, fft2_thread;
     struct fftw_data fft1_data = {
         .real = data1,
@@ -118,21 +117,26 @@ int cross_correlation(double *input1, double *input2, const size_t input_length,
         .length = length,
         .mutex = &fft_mutex
     };
-    if (pthread_create(&fft1_thread, NULL, &fft, (void *) &fft1_data)) {
+    if (pthread_create(&fft1_thread, NULL, &fft, (void *) &fft1_data) < 0) {
         perror("pthread_create");
         goto finish;
     }
-    if (pthread_create(&fft2_thread, NULL, &fft, (void *) &fft2_data)) {
+    if (pthread_create(&fft2_thread, NULL, &fft, (void *) &fft2_data) < 0) {
         perror("pthread_create");
         goto finish;
     }
-    pthread_join(fft1_thread, NULL);
-    pthread_join(fft2_thread, NULL);
+    if (pthread_join(fft1_thread, NULL) < 0) {
+        perror("pthread_join");
+        goto finish;
+    }
+    if (pthread_join(fft2_thread, NULL) < 0) {
+        perror("pthread_join");
+        goto finish;
+    }
 
     // Product of fft1 * conj(fft2), saved in the first array.
-    for (size_t i = 0; i < cpx_length; ++i) {
+    for (size_t i = 0; i < cpx_length; ++i)
         arr1[i] *= conj(arr2[i]);
-    }
 
     // And calculating the ifft. The size of the results is going to be the
     // original length again.
@@ -188,9 +192,7 @@ int cross_correlation(double *input1, double *input2, const size_t input_length,
     *coefficient = diffprod / sqrt(diff1_squared * diff2_squared);
 
     // Checking that the resulting coefficient isn't NaN
-    if (*coefficient != *coefficient) {
-        goto finish;
-    }
+    if (*coefficient != *coefficient) goto finish;
 
     // The returned value should be negative if the displacement is larger
     // than the size of the input array (meaning that the displacement is

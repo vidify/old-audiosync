@@ -41,10 +41,14 @@ void read_pipe(struct thread_data *data, char *args[]) {
 
         int interval_count = 0;
         data->len = 0;
+        int end_thread;
         while (data->len < data->total_len) {
             // Checking if the main process has indicated that this thread
-            // should end.
-            if (*(data->end) != 0) {
+            // should end (accessing it atomically).
+            pthread_mutex_lock(data->mutex);
+            end_thread = *(data->end);
+            pthread_mutex_unlock(data->mutex);
+            if (end_thread != 0) {
                 kill(pid, SIGKILL);
                 break;
             }
