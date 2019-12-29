@@ -1,10 +1,12 @@
 CC = gcc
-CFLAGS = -std=c11 -Wall -lfftw3 -lm -pthread -DDEBUG -fsanitize=address -fsanitize=undefined
+CFLAGS = -Wall -Wextra -std=c11 -DDEBUG -fsanitize=address -fsanitize=undefined
+LDLIBS = -lm -pthread -lfftw3
+OBJS = tests.o cross_correlation.o
 
 all: tests
 
-tests: tests.o cross_correlation.o
-	$(CC) $(CFLAGS) tests.o cross_correlation.o -o tests
+tests: $(OBJS)
+	$(CC) $(CFLAGS) -o tests $(OBJS) $(LDLIBS)
 
 tests.o: tests.c
 	$(CC) $(CFLAGS) -c tests.c

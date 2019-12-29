@@ -1,9 +1,12 @@
+#ifdef DEBUG
+# define _GNU_SOURCE  // Debug mode uses popen()
+# include <time.h>  // Debug mode uses timers
+#endif
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 #include <math.h>
-#include <time.h>
 #include <pthread.h>
+#include <string.h>
 #include <complex.h>
 #include <fftw3.h>
 #include "global.h"
@@ -28,8 +31,7 @@ static void *fft(void *thread_arg) {
     data = (struct fftw_data *) thread_arg;
 
     // Initializing the plan: the only thread-safe call in FFTW is
-    // fftw_execute, so the plan has to be created and destroyed with
-    // a lock.
+    // fftw_execute, so the plan has to be created and destroyed with a lock.
     pthread_mutex_lock(&MUTEX);
     fftw_plan p = fftw_plan_dft_r2c_1d(data->length, data->real, data->cpx,
                                        FFTW_ESTIMATE);
@@ -60,8 +62,10 @@ static void *fft(void *thread_arg) {
 // In case of error, the function returns -1
 int cross_correlation(double *input1, double *input2, const size_t input_length,
                       int *displacement, double *coefficient) {
+#ifdef DEBUG
     // Benchmarking the matching function
     clock_t start = clock();
+#endif
 
     // Zero padding the data.
     const size_t length = input_length * 2;
@@ -75,19 +79,19 @@ int cross_correlation(double *input1, double *input2, const size_t input_length,
 #ifdef DEBUG
     // Plotting the output with gnuplot
     printf(">> Saving initial plot to '%ld_original.png'\n", input_length);
-    FILE *gnuplot2 = popen("gnuplot", "w");
-    fprintf(gnuplot2, "set term 'png'\n");
-    fprintf(gnuplot2, "set output 'images/%ld_original.png'\n", input_length);
-    fprintf(gnuplot2, "plot '-' with lines title 'data1', '-' with lines title 'data2'\n");
+    FILE *gnuplot = popen("gnuplot", "w");
+    fprintf(gnuplot, "set term 'png'\n");
+    fprintf(gnuplot, "set output 'images/%ld_original.png'\n", input_length);
+    fprintf(gnuplot, "plot '-' with lines title 'data1', '-' with lines title 'data2'\n");
     for (size_t i = 0; i < input_length; ++i)
-        fprintf(gnuplot2, "%f\n", data1[i]);
-    fprintf(gnuplot2, "e\n");
+        fprintf(gnuplot, "%f\n", data1[i]);
+    fprintf(gnuplot, "e\n");
     // The second audio file starts at samplesDelay
     for (size_t i = 0; i < input_length; ++i)
-        fprintf(gnuplot2, "%f\n", data2[i]);
-    fprintf(gnuplot2, "e\n");
-    fflush(gnuplot2);
-    pclose(gnuplot2);
+        fprintf(gnuplot, "%f\n", data2[i]);
+    fprintf(gnuplot, "e\n");
+    fflush(gnuplot);
+    pclose(gnuplot);
 #endif
 
     // Getting the complex results from both FFT. The output length for the
@@ -194,7 +198,7 @@ int cross_correlation(double *input1, double *input2, const size_t input_length,
     printf(">> %ld frames of delay with a confidence of %f\n", lag, *coefficient);
     // Plotting the output with gnuplot
     printf(">> Saving plot to '%ld.png'\n", input_length);
-    FILE *gnuplot = popen("gnuplot", "w");
+    gnuplot = popen("gnuplot", "w");
     fprintf(gnuplot, "set term 'png'\n");
     fprintf(gnuplot, "set output 'images/%ld.png'\n", input_length);
     fprintf(gnuplot, "plot '-' with lines title 'data1', '-' with lines title 'data2'\n");
