@@ -11,3 +11,6 @@ script:
     - cd tests
     - make
     - ./tests
+
+notifications:
+    email: false

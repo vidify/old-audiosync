@@ -1,8 +1,9 @@
 from setuptools import setup, Extension
 
 audiosync = Extension(
-    'audiosync',
+    'vidify_audiosync',
     #  define_macros = [('DEBUG', '1')],
+    #  extra_compile_args = ['-g3', '-Wextra', '-Wpedantic'],
     include_dirs = ['/usr/local/include'],
     libraries = ['m', 'pthread', 'fftw3'],
     library_dirs = ['/usr/local/lib'],

@@ -187,7 +187,10 @@ int cross_correlation(double *input1, double *input2, const size_t input_length,
         goto fail;
     }
 
-    *displacement = lag;
+    // The returned value should be negative if the displacement is larger
+    // than the size of the input array (meaning that the displacement is
+    // inverted).
+    *displacement = (lag < input_length) ? lag : -(lag % input_length);
 
     fftw_free(arr1);
     fftw_free(arr2);
@@ -195,7 +198,7 @@ int cross_correlation(double *input1, double *input2, const size_t input_length,
 
 #ifdef DEBUG
     printf(">> Result obtained in %f secs\n", (clock() - start) / (double) CLOCKS_PER_SEC);
-    printf(">> %ld frames of delay with a confidence of %f\n", lag, *coefficient);
+    printf(">> %d frames of delay with a confidence of %f\n", *displacement, *coefficient);
     // Plotting the output with gnuplot
     printf(">> Saving plot to '%ld.png'\n", input_length);
     gnuplot = popen("gnuplot", "w");

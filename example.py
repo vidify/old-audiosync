@@ -1,5 +1,5 @@
 import sys
-import audiosync
+import vidify_audiosync as audiosync
 import youtube_dl
 
 

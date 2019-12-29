@@ -54,8 +54,14 @@ PyObject *audiosync_get_lag(PyObject *self, PyObject *args) {
     // memory.
     double *arr1;
     arr1 = malloc(length * sizeof(*arr1));
+    if (arr1 == NULL) {
+        perror("arr1 malloc");
+    }
     double *arr2;
     arr2 = malloc(length * sizeof(*arr2));
+    if (arr2 == NULL) {
+        perror("arr2 malloc");
+    }
     // Variable used to indicate the other threads to end. Any value other
     // than zero means that it should terminate.
     int end = 0;
@@ -93,11 +99,11 @@ PyObject *audiosync_get_lag(PyObject *self, PyObject *args) {
         .url = url,
         .th_data = &down_params
     };
-    if (pthread_create(&cap_th, NULL, &capture, (void *) &cap_params)) {
+    if (pthread_create(&cap_th, NULL, &capture, (void *) &cap_params) < 0) {
         perror("pthread_create");
         goto finish;
     }
-    if (pthread_create(&down_th, NULL, &download, (void *) &down_th_params)) {
+    if (pthread_create(&down_th, NULL, &download, (void *) &down_th_params) < 0) {
         perror("pthread_create");
         goto finish;
     }
