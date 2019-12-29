@@ -42,5 +42,4 @@ build/
 *.egg-info/
 etc/
 share/
-tests/images
 tests/tests
