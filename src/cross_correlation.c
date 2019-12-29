@@ -54,8 +54,8 @@ static void *fft(void *thread_arg) {
 // calculate the circular cross-correlation rather than the regular
 // cross-correlation.
 //
-// Returns the lag in milliseconds the second data set has over the first
-// one, with a confidence between -1 and 1.
+// Returns the lag in frames the second data set has over the first one, with
+// a confidence between -1 and 1.
 //
 // In case of error, the function returns -1
 int cross_correlation(double *input1, double *input2, const size_t input_length,
@@ -183,8 +183,7 @@ int cross_correlation(double *input1, double *input2, const size_t input_length,
         goto fail;
     }
 
-    // Conversion to milliseconds with 48000KHz as the sample rate.
-    *displacement = lag / SAMPLES_TO_MS;
+    *displacement = lag;
 
     fftw_free(arr1);
     fftw_free(arr2);

@@ -10,8 +10,9 @@
 #define NUM_CHANNELS_STR "1"
 #define SAMPLE_RATE 48000
 #define SAMPLE_RATE_STR "48000"
-// Conversion from the used sample rate to milliseconds: 48000 / 1000
-#define SAMPLES_TO_MS 48
+// Conversion factor from the WAV samples with the used sample rate to
+// milliseconds.
+#define FRAMES_TO_MS (1000.0 / (double) SAMPLE_RATE)
 
 // The value of the last interval in audiosync.c in seconds.
 #define MAX_SECONDS_STR "15"

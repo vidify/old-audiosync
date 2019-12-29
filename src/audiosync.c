@@ -118,9 +118,10 @@ PyObject *audiosync_get_lag(PyObject *self, PyObject *args) {
         if (cross_correlation(arr1, arr2, intervals[i], &lag, &confidence) < 0) {
             continue;
         }
+        lag = (double) lag * FRAMES_TO_MS;
 
 #ifdef DEBUG
-        printf("RESULT: lag=%d, confidence=%f\n", lag, confidence);
+        printf("RESULT: lag = %dms, confidence = %f\n", lag, confidence);
 #endif
 
         // If the returned confidence is higher or equal than the minimum
