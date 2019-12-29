@@ -5,7 +5,7 @@ os: linux
 
 before_script:
     - sudo apt-get update
-    - sudo apt-get -y install libfftw3-dev ffmpeg
+    - sudo apt-get -y install libfftw3-dev ffmpeg gnuplot
 
 script:
     - cd tests

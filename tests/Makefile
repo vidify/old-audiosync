@@ -1,5 +1,7 @@
 CC = gcc
-CFLAGS = -Wall -Wextra -std=c11 -DDEBUG -fsanitize=address -fsanitize=undefined
+# -fsanitize=address is disabled until https://github.com/FFTW/fftw3/issues/186
+# is resolved.
+CFLAGS = -Wall -g -Wextra -std=c11 -DDEBUG -fsanitize=undefined
 LDLIBS = -lm -pthread -lfftw3
 OBJS = tests.o cross_correlation.o
 
