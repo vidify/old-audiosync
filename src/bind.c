@@ -1,6 +1,6 @@
 #define PY_SSIZE_T_CLEAN
 #include <Python.h>
-#include "audiosync.h"
+#include "../include/audiosync.h"
 
 PyObject *audiosync_get_lag(PyObject *self, PyObject *args);
 

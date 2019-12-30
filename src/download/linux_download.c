@@ -1,8 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <pthread.h>
-#include "../global.h"
-#include "../ffmpeg_pipe.h"
+#include <vidify_audiosync/global.h>
+#include <vidify_audiosync/ffmpeg_pipe.h>
 
 
 void *download(void *arg) {

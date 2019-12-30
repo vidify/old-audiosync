@@ -2,14 +2,14 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <math.h>
-#include "../src/cross_correlation.h"
+#include <vidify_audiosync/cross_correlation.h>
 
 
 // Testing the cross_correlation function. These results can be compared to
 // matlab's implementation:
 // https://ch.mathworks.com/help/matlab/ref/xcorr.html
 // or with the Python sketch in dev/sketch.py
-void test_cross_correlation() {
+int main() {
     int ret, lag;
     size_t length;
     double coefficient;
@@ -89,11 +89,6 @@ void test_cross_correlation() {
     assert(ret == 0);
     assert(lag == 1);
     assert(coefficient < -0.95);  // Leaving a margin for precision
-}
-
-
-int main() {
-    test_cross_correlation();
 
     return 0;
 }

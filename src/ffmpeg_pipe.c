@@ -5,7 +5,7 @@
 #include <sys/types.h>
 #include <signal.h>
 #include <unistd.h>
-#include "global.h"
+#include <vidify_audiosync/global.h>
 
 #define READ_END 0
 #define WRITE_END 1

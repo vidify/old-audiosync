@@ -17,10 +17,10 @@
 #include <pthread.h>
 #include <fftw3.h>
 #include <string.h>
-#include "global.h"
-#include "cross_correlation.h"
-#include "capture/linux_capture.h"
-#include "download/linux_download.h"
+#include <vidify_audiosync/global.h>
+#include <vidify_audiosync/cross_correlation.h>
+#include <vidify_audiosync/capture/linux_capture.h>
+#include <vidify_audiosync/download/linux_download.h>
 
 
 int get_lag(char *url) {
