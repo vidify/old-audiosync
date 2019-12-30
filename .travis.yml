@@ -8,9 +8,12 @@ before_script:
     - sudo apt-get -y install libfftw3-dev ffmpeg gnuplot
 
 script:
-    - cd tests
+    - mkdir build
+    - cd build
+    - mkdir images
+    - cmake ..
     - make
-    - ./tests
+    - make test
 
 notifications:
     email: false
