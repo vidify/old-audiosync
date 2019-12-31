@@ -28,6 +28,10 @@ PyObject *audiosync_get_lag(PyObject *self, PyObject *args) {
             return NULL;
     }
 
-    int ret = get_lag(yt_title);
+    int ret;
+    Py_BEGIN_ALLOW_THREADS
+    ret = get_lag(yt_title);
+    Py_END_ALLOW_THREADS
+
     return PyLong_FromLong(ret);
 }
