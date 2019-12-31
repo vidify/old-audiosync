@@ -18,9 +18,7 @@ In the future, it will be available on the AUR and more sources.
 
 
 ## Usage
-The only exported method is `get_lag(url: str)`, which returns the displacement between the two audio sources (positive or negative). `url` is a direct link to the YouTube song, obtained with `youtube-dl -g -f bestaudio YT_LINK`.
-
-There's a simple example implementation in the [example.py](https://github.com/marioortizmanero/vidify-audiosync/blob/master/examples/example.py) file.
+The only exported method is `get_lag(title: str)`, which returns the displacement between the two audio sources (positive or negative). `title` is the full YouTube link that the recorded audio will be compared to.
 
 There are 2 apps to try:
 
