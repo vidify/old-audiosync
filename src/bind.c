@@ -23,11 +23,11 @@ PyMODINIT_FUNC PyInit_vidify_audiosync(void) {
 }
 
 PyObject *audiosync_get_lag(PyObject *self, PyObject *args) {
-    char *url;
-    if (!PyArg_ParseTuple(args, "s", &url)) {
+    char *yt_title;
+    if (!PyArg_ParseTuple(args, "s", &yt_title)) {
             return NULL;
     }
 
-    int ret = get_lag(url);
+    int ret = get_lag(yt_title);
     return PyLong_FromLong(ret);
 }

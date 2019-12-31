@@ -23,7 +23,7 @@
 #include "../include/vidify_audiosync/download/linux_download.h"
 
 
-int get_lag(char *url) {
+int get_lag(char *yt_title) {
     // The audio data.
     double *arr1, *arr2;
     // Variable used to indicate the other threads to end. Any value other
@@ -37,9 +37,10 @@ int get_lag(char *url) {
     const size_t intervals[] = {
         3 * SAMPLE_RATE,  // 144000 frames
         6 * SAMPLE_RATE,  // 288000 frames
-        9 * SAMPLE_RATE,  // 432000 frames
-        12 * SAMPLE_RATE,  // 576000 frames
-        15 * SAMPLE_RATE,  // 720000 frames
+        10 * SAMPLE_RATE,  // 432000 frames
+        15 * SAMPLE_RATE,  // 576000 frames
+        20 * SAMPLE_RATE,  // 720000 frames
+        30 * SAMPLE_RATE,  // 720000 frames
     };
     const size_t n_intervals = sizeof(intervals) / sizeof(intervals[0]);
     const size_t length = intervals[n_intervals-1];
@@ -83,7 +84,7 @@ int get_lag(char *url) {
     // Data structure passed to the download thread. It's a different type
     // because it also needs the url of the video to download.
     struct down_data down_th_params = {
-        .url = url,
+        .yt_title = yt_title,
         .th_data = &down_params
     };
     if (pthread_create(&cap_th, NULL, &capture, (void *) &cap_params) < 0) {

@@ -5,8 +5,8 @@ add_executable(
     ${HEADERS}
 )
 
-# Minimum C11 required. Also listing the used libraries.
-target_compile_features(tests PRIVATE c_std_11)
+# Minimum C99 required. Also listing the used libraries.
+target_compile_features(tests PRIVATE c_std_99)
 target_link_libraries(tests PRIVATE vidify_audiosync fftw3 m pthread)
 
 # Adding the tests one by one for the make command:

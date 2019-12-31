@@ -14,8 +14,10 @@
 // milliseconds.
 #define FRAMES_TO_MS (1000.0 / (double) SAMPLE_RATE)
 
-// The value of the last interval in audiosync.c in seconds.
-#define MAX_SECONDS_STR "15"
+// The value of the last interval in audiosync.c in seconds. This avoids
+// having to run an itoa() for intervals[n_intervals-1] and simplifies it a
+// bit.
+#define MAX_SECONDS_STR "30"
 
 // The minimum cross-correlation coefficient accepted.
 #define MIN_CONFIDENCE 0.75
@@ -32,7 +34,7 @@ struct thread_data {
     int *end;
 };
 struct down_data {
-    char *url;
+    char *yt_title;
     struct thread_data *th_data;
 };
 

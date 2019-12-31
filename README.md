@@ -22,6 +22,23 @@ The only exported method is `get_lag(url: str)`, which returns the displacement 
 
 There's a simple example implementation in the [example.py](https://github.com/marioortizmanero/vidify-audiosync/blob/master/examples/example.py) file.
 
+There are 2 apps to try:
+
+* `apps/main.c`: used to debug more easily. You can run it with:
+
+```shell
+mkdir build
+cd build
+mkdir images
+cmake ..
+make
+./apps/main "SONG NAME"
+```
+
+Use `-DCMAKE_BUILD_TYPE=Debug` to enable debugging and save plots into the images directory. You'll need `gnuplot` installed for that.
+
+* `apps/main.py`: the actual module usage. You can simply use `python main.py "SONG NAME"`
+
 
 ## How it works
 *I'll try to explain it as clearly as possible, since this took me a lot of effort to understand without prior knowledge about the mathematics behind it. If someone with a better understanding of the calculations performed in this module considers that the explanation could be improved, please [create an issue](https://github.com/marioortizmanero/vidify-audiosync/issues) to let me know.*
