@@ -12,7 +12,6 @@
 #include "../include/vidify_audiosync/global.h"
 
 
-
 // Data structure used to pass parameters to concurrent FFTW-related functions.
 struct fftw_data {
     double *real;
@@ -54,6 +53,10 @@ static void *fft(void *thread_arg) {
 // calculate the circular cross-correlation rather than the regular
 // cross-correlation.
 //
+// Note: if debugging mode is enabled, plots of each run will be saved in an
+// images directory. The titles assume that `input1` is the captured data,
+// and `input2` is the downloaded data.
+//
 // Returns the lag in frames the second data set has over the first one, with
 // a confidence between -1 and 1.
 //
@@ -83,13 +86,13 @@ int cross_correlation(double *input1, double *input2, const size_t input_length,
     FILE *gnuplot = popen("gnuplot", "w");
     fprintf(gnuplot, "set term 'png'\n");
     fprintf(gnuplot, "set output 'images/%ld_original.png'\n", input_length);
-    fprintf(gnuplot, "plot '-' with lines title 'data1', '-' with lines title 'data2'\n");
+    fprintf(gnuplot, "plot '-' with lines title 'downloaded', '-' with lines title 'captured'\n");
     for (size_t i = 0; i < input_length; ++i)
-        fprintf(gnuplot, "%f\n", data1[i]);
+        fprintf(gnuplot, "%f\n", data2[i]);
     fprintf(gnuplot, "e\n");
     // The second audio file starts at samplesDelay
     for (size_t i = 0; i < input_length; ++i)
-        fprintf(gnuplot, "%f\n", data2[i]);
+        fprintf(gnuplot, "%f\n", data1[i]);
     fprintf(gnuplot, "e\n");
     fflush(gnuplot);
     pclose(gnuplot);
@@ -207,13 +210,13 @@ int cross_correlation(double *input1, double *input2, const size_t input_length,
     gnuplot = popen("gnuplot", "w");
     fprintf(gnuplot, "set term 'png'\n");
     fprintf(gnuplot, "set output 'images/%ld.png'\n", input_length);
-    fprintf(gnuplot, "plot '-' with lines title 'data1', '-' with lines title 'data2'\n");
+    fprintf(gnuplot, "plot '-' with lines title 'downloaded', '-' with lines title 'captured'\n");
     for (size_t i = 0; i < input_length; ++i)
-        fprintf(gnuplot, "%f\n", data1[i]);
+        fprintf(gnuplot, "%f\n", data2[i]);
     fprintf(gnuplot, "e\n");
     // The second audio file starts at samplesDelay
     for (size_t i = 0; i < input_length; ++i)
-        fprintf(gnuplot, "%f\n", data2[i]);
+        fprintf(gnuplot, "%f\n", data1[i]);
     fprintf(gnuplot, "e\n");
     fflush(gnuplot);
     pclose(gnuplot);

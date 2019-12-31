@@ -19,8 +19,8 @@ add_library(
 
 target_include_directories(vidify_audiosync PUBLIC ../include)
 
-# C11 is required
-target_compile_features(vidify_audiosync PUBLIC c_std_11)
+# C99 is required
+target_compile_features(vidify_audiosync PUBLIC c_std_99)
 
 # For the IDEs
 source_group(TREE "${PROJECT_SOURCE_DIR}/include" PREFIX "Header Files" FILES ${HEADERS})

@@ -3,6 +3,7 @@
 #include <pthread.h>
 #include "../../include/vidify_audiosync/global.h"
 #include "../../include/vidify_audiosync/ffmpeg_pipe.h"
+#include "../../include/vidify_audiosync/capture/linux_capture.h"
 
 
 // NOTE: for now requires to change the captured sink in pavucontrol to
