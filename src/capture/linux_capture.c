@@ -1,8 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <pthread.h>
-#include <vidify_audiosync/global.h>
-#include <vidify_audiosync/ffmpeg_pipe.h>
+#include "../../include/vidify_audiosync/global.h"
+#include "../../include/vidify_audiosync/ffmpeg_pipe.h"
 
 
 // NOTE: for now requires to change the captured sink in pavucontrol to

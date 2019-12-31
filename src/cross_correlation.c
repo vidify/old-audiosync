@@ -9,7 +9,7 @@
 #include <string.h>
 #include <complex.h>
 #include <fftw3.h>
-#include <vidify_audiosync/global.h>
+#include "../include/vidify_audiosync/global.h"
 
 
 
