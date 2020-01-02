@@ -54,9 +54,7 @@ int get_audio_url(char *title, char **url) {
         fprintf(stderr, "Failed to run command\n" );
         goto finish;
     }
-    printf("Getting url 1 %s\n", command);
     fscanf(fp, "%s", *url);
-    printf("Getting url 2\n");
     pclose(fp);
 
     ret = 0;
