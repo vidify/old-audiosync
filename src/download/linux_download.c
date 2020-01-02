@@ -27,8 +27,8 @@ void *download(void *arg) {
     }
 
     char *args[] = {
-        "ffmpeg", "-y", "-to", "15", "-i", url, "-ac", NUM_CHANNELS_STR, "-r",
-        SAMPLE_RATE_STR, "-f", "f64le", "pipe:1", NULL
+        "ffmpeg", "-y", "-to", MAX_SECONDS_STR, "-i", url, "-ac",
+        NUM_CHANNELS_STR, "-r", SAMPLE_RATE_STR, "-f", "f64le", "pipe:1", NULL
     };
     read_pipe(data->th_data, args);
 

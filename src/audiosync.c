@@ -37,12 +37,12 @@ int get_lag(char *yt_title) {
     // calculated. If it's accepted, the threads will finish and the main
     // function will return the lag calculated.
     const size_t intervals[] = {
-        3 * SAMPLE_RATE,  // 144000 frames
-        6 * SAMPLE_RATE,  // 288000 frames
-        10 * SAMPLE_RATE,  // 432000 frames
-        15 * SAMPLE_RATE,  // 576000 frames
-        20 * SAMPLE_RATE,  // 720000 frames
-        30 * SAMPLE_RATE,  // 720000 frames
+        3 * SAMPLE_RATE,  // 144,000 frames
+        6 * SAMPLE_RATE,  // 288,000 frames
+        10 * SAMPLE_RATE,  // 432,000 frames
+        15 * SAMPLE_RATE,  // 576,000 frames
+        20 * SAMPLE_RATE,  // 720,000 frames
+        30 * SAMPLE_RATE,  // 1,440,000 frames
     };
     const size_t n_intervals = sizeof(intervals) / sizeof(intervals[0]);
     const size_t length = intervals[n_intervals-1];
@@ -61,8 +61,8 @@ int get_lag(char *yt_title) {
     pthread_t down_th, cap_th;
     pthread_mutex_t global_mutex = PTHREAD_MUTEX_INITIALIZER;
     pthread_cond_t thread_done = PTHREAD_COND_INITIALIZER;
-    memset((void *) &down_th, 0, sizeof (down_th));
-    memset((void *) &cap_th, 0, sizeof (cap_th));
+    memset((void *) &down_th, 0, sizeof(down_th));
+    memset((void *) &cap_th, 0, sizeof(cap_th));
     struct thread_data cap_params = {
         .buf = arr1,
         .total_len = length,

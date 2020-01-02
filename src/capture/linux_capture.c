@@ -14,7 +14,7 @@ void *capture(void *arg) {
 
     fprintf(stderr, "audiosync: Starting to read the capture pipe\n");
     char *args[] = {
-        "ffmpeg", "-y", "-to", "15", "-f", "pulse", "-i", "default",
+        "ffmpeg", "-y", "-to", MAX_SECONDS_STR, "-f", "pulse", "-i", "default",
         "-ac", NUM_CHANNELS_STR, "-r", SAMPLE_RATE_STR, "-f", "f64le",
         "pipe:1", NULL
     };
