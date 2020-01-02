@@ -27,7 +27,9 @@ int get_lag(char *yt_title) {
     // The audio data.
     double *arr1, *arr2;
     // Variable used to indicate the other threads to end. Any value other
-    // than zero means that it should terminate.
+    // than zero means that it should terminate. It starts at zero so that
+    // if any function call fails and does a `goto finish`, the returned
+    // value will be zero.
     int end = 0;
 
     // The algorithm will be run in these intervals. When both threads signal
@@ -48,11 +50,11 @@ int get_lag(char *yt_title) {
     // Allocated using malloc because the stack doesn't have enough memory.
     arr1 = malloc(length * sizeof(double));
     if (arr1 == NULL) {
-        perror("arr1 malloc");
+        perror("audiosync: arr1 malloc error");
     }
     arr2 = malloc(length * sizeof(double));
     if (arr2 == NULL) {
-        perror("arr2 malloc");
+        perror("audiosync: arr2 malloc error");
     }
 
     // Launching the threads
@@ -88,11 +90,11 @@ int get_lag(char *yt_title) {
         .th_data = &down_params
     };
     if (pthread_create(&cap_th, NULL, &capture, (void *) &cap_params) < 0) {
-        perror("pthread_create");
+        perror("audiosync: pthread_create error");
         goto finish;
     }
     if (pthread_create(&down_th, NULL, &download, (void *) &down_th_params) < 0) {
-        perror("pthread_create");
+        perror("audiosync: pthread_create error");
         goto finish;
     }
 
@@ -106,9 +108,7 @@ int get_lag(char *yt_title) {
         }
         pthread_mutex_unlock(&global_mutex);
 
-#ifdef DEBUG
-        printf(">> Next interval (%ld): cap=%ld down=%ld\n", i, cap_params.len, down_params.len);
-#endif
+        printf("audiosync: Next interval (%ld): cap=%ld down=%ld\n", i, cap_params.len, down_params.len);
 
         // Running the cross correlation algorithm and checking for errors.
         if (cross_correlation(arr1, arr2, intervals[i], &lag, &confidence) < 0) {
@@ -125,11 +125,11 @@ int get_lag(char *yt_title) {
             end = 1;
             pthread_mutex_unlock(&global_mutex);
             if (pthread_join(cap_th, NULL) < 0) {
-                perror("pthread_join");
+                perror("audiosync: pthread_join error");
                 goto finish;
             }
             if (pthread_join(down_th, NULL) < 0) {
-                perror("pthread_join");
+                perror("audiosync: pthread_join");
                 goto finish;
             }
             break;

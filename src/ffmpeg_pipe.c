@@ -14,13 +14,13 @@
 void read_pipe(struct thread_data *data, char *args[]) {
     int wav_pipe[2];
     if (pipe(wav_pipe) < 0) {
-        perror("pipe()");
+        perror("audiosync: pipe for wav_pipe error");
         return;
     }
 
     pid_t pid = fork();
     if (pid < 0) {
-        perror("fork");
+        perror("audiosync: fork in read_pipe error");
         return;
     } else if (pid == 0) {
         // Child process (ffmpeg), doesn't read the pipe.
@@ -28,13 +28,9 @@ void read_pipe(struct thread_data *data, char *args[]) {
 
         // Redirecting stdout to the pipe
         dup2(wav_pipe[WRITE_END], 1);
-#ifndef DEBUG
-        // Ignoring stderr when debug mode is disabled
-        freopen("/dev/null", "w", stderr);
-#endif
 
         execvp("ffmpeg", args);
-        printf("ffmpeg command failed.\n");
+        fprintf(stderr, "audiosync: ffmpeg command failed.\n");
     } else {
         // Parent process (reading the output pipe), doesn't write.
         close(wav_pipe[WRITE_END]);
@@ -57,7 +53,7 @@ void read_pipe(struct thread_data *data, char *args[]) {
             // the read data is incorrect. I should investigate more about this
             // though, as I don't fully understand why this happens.
             if (read(wav_pipe[READ_END], (data->buf + data->len), sizeof(*(data->buf))) < 0) {
-                perror("READ");
+                perror("audiosync: read for wav_pipe");
                 break;
             }
             data->len++;

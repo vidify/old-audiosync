@@ -12,6 +12,7 @@ void *capture(void *arg) {
     struct thread_data *data;
     data = (struct thread_data *) arg;
 
+    fprintf(stderr, "audiosync: Starting to read the capture pipe\n");
     char *args[] = {
         "ffmpeg", "-y", "-to", "15", "-f", "pulse", "-i", "default",
         "-ac", NUM_CHANNELS_STR, "-r", SAMPLE_RATE_STR, "-f", "f64le",

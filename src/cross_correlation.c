@@ -82,7 +82,7 @@ int cross_correlation(double *input1, double *input2, const size_t input_length,
 
 #ifdef DEBUG
     // Plotting the output with gnuplot
-    printf(">> Saving initial plot to '%ld_original.png'\n", input_length);
+    fprintf(stderr, "audiosync: Saving initial plot to '%ld_original.png'\n", input_length);
     FILE *gnuplot = popen("gnuplot", "w");
     fprintf(gnuplot, "set term 'png'\n");
     fprintf(gnuplot, "set output 'images/%ld_original.png'\n", input_length);
@@ -121,19 +121,19 @@ int cross_correlation(double *input1, double *input2, const size_t input_length,
         .mutex = &fft_mutex
     };
     if (pthread_create(&fft1_thread, NULL, &fft, (void *) &fft1_data) < 0) {
-        perror("pthread_create");
+        perror("audiosync: pthread_create for fft1_thread error");
         goto finish;
     }
     if (pthread_create(&fft2_thread, NULL, &fft, (void *) &fft2_data) < 0) {
-        perror("pthread_create");
+        perror("audiosync: pthread_create for fft2_thread error");
         goto finish;
     }
     if (pthread_join(fft1_thread, NULL) < 0) {
-        perror("pthread_join");
+        perror("audiosync: pthread_join for fft1_thread error");
         goto finish;
     }
     if (pthread_join(fft2_thread, NULL) < 0) {
-        perror("pthread_join");
+        perror("audiosync: pthread_join for fft2_thread error");
         goto finish;
     }
 
@@ -202,11 +202,13 @@ int cross_correlation(double *input1, double *input2, const size_t input_length,
     // inverted).
     *displacement = (lag < input_length) ? lag : -(lag % input_length);
 
+    fprintf(stderr, "audiosync: %d frames of delay with a confidence of %f\n", *displacement, *coefficient);
+
 #ifdef DEBUG
-    printf(">> Result obtained in %f secs\n", (clock() - start) / (double) CLOCKS_PER_SEC);
-    printf(">> %d frames of delay with a confidence of %f\n", *displacement, *coefficient);
+    fprintf(stderr, "audiosync: Result obtained in %f secs\n", (clock() - start) / (double) CLOCKS_PER_SEC);
+
     // Plotting the output with gnuplot
-    printf(">> Saving plot to '%ld.png'\n", input_length);
+    fprintf(stderr, "audiosync: Saving plot to '%ld.png'\n", input_length);
     gnuplot = popen("gnuplot", "w");
     fprintf(gnuplot, "set term 'png'\n");
     fprintf(gnuplot, "set output 'images/%ld.png'\n", input_length);

@@ -17,12 +17,12 @@ void *download(void *arg) {
 
     char *url = malloc(sizeof(char) * MAX_LONG_URL);
     if (url == NULL) {
-        perror("malloc");
+        perror("audiosync: malloc error");
         goto finish;
     }
 
     if (get_audio_url(data->yt_title, &url) < 0) {
-        fprintf(stderr, "Could not obtain youtube url.\n");
+        fprintf(stderr, "audiosync: Could not obtain youtube url.\n");
         goto finish;
     }
 
@@ -51,11 +51,12 @@ int get_audio_url(char *title, char **url) {
     // Run the command and read the output
     FILE *fp = popen(command, "r");
     if (fp == NULL) {
-        fprintf(stderr, "Failed to run command\n" );
+        fprintf(stderr, "audiosync: Failed to run youtube-dl command\n" );
         goto finish;
     }
     fscanf(fp, "%s", *url);
     pclose(fp);
+    fprintf(stderr, "audiosync: obtained youtube-dl URL\n");
 
     ret = 0;
 

@@ -2,8 +2,10 @@ from setuptools import setup, Extension
 
 audiosync = Extension(
     'vidify_audiosync',
-    #  define_macros = [('DEBUG', '1')],
-    #  extra_compile_args = ['-Iinclude', '-g3', '-Wextra', '-Wpedantic'],
+    # If these are uncommented and the extra_compile_args option blow is
+    # uncommented, the module will plot the results in the images/ directory.
+    # define_macros = [('DEBUG', '1')],
+    # extra_compile_args = ['-Iinclude', '-Wextra', '-Wpedantic'],
     extra_compile_args = ['-Iinclude'],
     include_dirs = ['/usr/local/include'],
     libraries = ['m', 'pthread', 'fftw3'],
