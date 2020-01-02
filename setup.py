@@ -3,7 +3,8 @@ from setuptools import setup, Extension
 audiosync = Extension(
     'vidify_audiosync',
     #  define_macros = [('DEBUG', '1')],
-    #  extra_compile_args = ['-g3', '-Wextra', '-Wpedantic'],
+    #  extra_compile_args = ['-Iinclude', '-g3', '-Wextra', '-Wpedantic'],
+    extra_compile_args = ['-Iinclude'],
     include_dirs = ['/usr/local/include'],
     libraries = ['m', 'pthread', 'fftw3'],
     library_dirs = ['/usr/local/lib'],
