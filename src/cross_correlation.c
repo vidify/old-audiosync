@@ -160,15 +160,19 @@ int cross_correlation(double *input_source, double *input_sample,
     // If the lag is greater than the input array itself, it means that the
     // displacement that has to be performed is to the left, and otherwise
     // to the right.
+    size_t shift_start = 0;
+    size_t shift_end = input_length;
     if (lag > (long int) input_length) {
         // Performing the displacement to the left
         lag = (long int) input_length - (lag % (long int) input_length);
-        memmove(sample, sample + lag, sizeof(double) * (input_length - lag));
-        memset(sample + (input_length - lag), 0, sizeof(double) * lag);
+        shift_end = (input_length - lag);
+        memmove(sample, sample + lag, sizeof(double) * shift_end);
+        memset(sample + shift_end, 0, sizeof(double) * lag);
         *displacement = -lag;
     } else {
         // Performing the displacement to the right
-        memmove(sample + lag, sample, sizeof(double) * (input_length - lag));
+        shift_start = lag;
+        memmove(sample + shift_start, sample, sizeof(double) * shift_end);
         memset(sample, 0, sizeof(double) * lag);
         *displacement = lag;
     }
@@ -178,18 +182,18 @@ int cross_correlation(double *input_source, double *input_sample,
     // 1. The average for both datasets.
     double sum1 = 0.0;
     double sum2 = 0.0;
-    for (size_t i = 0; i < input_length; ++i) {
+    for (size_t i = shift_start; i < shift_end; ++i) {
          sum1 += source[i];
          sum2 += sample[i];
     }
-    double avg1 = sum1 / input_length;
-    double avg2 = sum2 / input_length;
+    double avg1 = sum1 / (shift_end - shift_start);
+    double avg2 = sum2 / (shift_end - shift_start);
     // 2. Applying the definition formula.
     double diff1, diff2;
     double diffprod = 0.0;
     double diff1_squared = 0.0;
     double diff2_squared = 0.0;
-    for (size_t i = 0; i < input_length; ++i) {
+    for (size_t i = shift_start; i < shift_end; ++i) {
         diff1 = source[i] - avg1;
         diff2 = sample[i] - avg2;
         diffprod += diff1 * diff2;
@@ -215,11 +219,11 @@ int cross_correlation(double *input_source, double *input_sample,
     fprintf(gnuplot, "set output 'images/%ld.png'\n", input_length);
     fprintf(gnuplot, "plot '-' with lines title 'sample', '-' with lines"
             " title 'source'\n");
-    for (size_t i = 0; i < input_length; ++i)
+    for (size_t i = shift_start; i < shift_end; ++i)
         fprintf(gnuplot, "%f\n", sample[i]);
     fprintf(gnuplot, "e\n");
     // The second audio file starts at samplesDelay
-    for (size_t i = 0; i < input_length; ++i)
+    for (size_t i = shift_start; i < shift_end; ++i)
         fprintf(gnuplot, "%f\n", source[i]);
     fprintf(gnuplot, "e\n");
     fflush(gnuplot);
