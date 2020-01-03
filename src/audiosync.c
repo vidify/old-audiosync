@@ -26,7 +26,7 @@
 
 long int get_lag(char *yt_title) {
     // The audio data.
-    double *arr1, *arr2;
+    double *cap_sample, *yt_source;
     // Variable used to indicate the other threads to end. Any value other
     // than zero means that it should terminate. It starts at zero so that
     // if any function call fails and does a `goto finish`, the returned
@@ -49,13 +49,13 @@ long int get_lag(char *yt_title) {
     const size_t length = intervals[n_intervals-1];
 
     // Allocated using malloc because the stack doesn't have enough memory.
-    arr1 = malloc(length * sizeof(double));
-    if (arr1 == NULL) {
-        perror("audiosync: arr1 malloc error");
+    cap_sample = malloc(length * sizeof(double));
+    if (cap_sample == NULL) {
+        perror("audiosync: cap_sample malloc error");
     }
-    arr2 = malloc(length * sizeof(double));
-    if (arr2 == NULL) {
-        perror("audiosync: arr2 malloc error");
+    yt_source = malloc(length * sizeof(double));
+    if (yt_source == NULL) {
+        perror("audiosync: yt_source malloc error");
     }
 
     // Launching the threads
@@ -65,7 +65,7 @@ long int get_lag(char *yt_title) {
     memset((void *) &down_th, 0, sizeof(down_th));
     memset((void *) &cap_th, 0, sizeof(cap_th));
     struct thread_data cap_params = {
-        .buf = arr1,
+        .buf = cap_sample,
         .total_len = length,
         .len = 0,
         .intervals = intervals,
@@ -75,7 +75,7 @@ long int get_lag(char *yt_title) {
         .end = &end
     };
     struct thread_data down_params = {
-        .buf = arr2,
+        .buf = yt_source,
         .total_len = length,
         .len = 0,
         .intervals = intervals,
@@ -110,11 +110,11 @@ long int get_lag(char *yt_title) {
         }
         pthread_mutex_unlock(&global_mutex);
 
-        printf("audiosync: Next interval (%ld): cap=%ld down=%ld\n", i,
-               cap_params.len, down_params.len);
+        fprintf(stderr, "audiosync: Next interval (%ld): cap=%ld down=%ld\n",
+                i, cap_params.len, down_params.len);
 
         // Running the cross correlation algorithm and checking for errors.
-        if (cross_correlation(arr1, arr2, intervals[i], &lag,
+        if (cross_correlation(yt_source, cap_sample, intervals[i], &lag,
                               &confidence) < 0) {
             continue;
         }
@@ -141,8 +141,8 @@ long int get_lag(char *yt_title) {
     }
 
 finish:
-    if (arr1) free(arr1);
-    if (arr2) free(arr2);
+    if (cap_sample) free(cap_sample);
+    if (yt_source) free(yt_source);
 
     return (end == 0) ? 0 : lag;
 }

@@ -167,13 +167,11 @@ int cross_correlation(double *input_source, double *input_sample,
         lag = (long int) input_length - (lag % (long int) input_length);
         shift_end = (input_length - lag);
         memmove(sample, sample + lag, sizeof(double) * shift_end);
-        memset(sample + shift_end, 0, sizeof(double) * lag);
         *displacement = -lag;
     } else {
         // Performing the displacement to the right
         shift_start = lag;
         memmove(sample + shift_start, sample, sizeof(double) * shift_end);
-        memset(sample, 0, sizeof(double) * lag);
         *displacement = lag;
     }
 

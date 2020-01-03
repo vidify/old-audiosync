@@ -20,7 +20,7 @@
 #define MAX_SECONDS_STR "30"
 
 // The minimum cross-correlation coefficient accepted.
-#define MIN_CONFIDENCE 0.9
+#define MIN_CONFIDENCE 0.95
 
 // Structs used to pass the parameters to the threads.
 struct thread_data {
