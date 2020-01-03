@@ -1,5 +1,5 @@
 #ifdef DEBUG
-# define _GNU_SOURCE  // Debug mode uses popen()
+# define _GNU_SOURCE  // Debug mode uses popen, order matters
 # include <time.h>  // Debug mode uses timers
 #endif
 #include <stdio.h>
@@ -62,7 +62,7 @@ static void *fft(void *thread_arg) {
 //
 // In case of error, the function returns -1
 int cross_correlation(double *input1, double *input2, const size_t input_length,
-                      int *displacement, double *coefficient) {
+                      long int *displacement, double *coefficient) {
 #ifdef DEBUG
     // Benchmarking the matching function
     clock_t start = clock();
@@ -150,7 +150,7 @@ int cross_correlation(double *input1, double *input2, const size_t input_length,
     // Getting the results: the index of the maximum value is the desired lag.
     double abs;
     double max = results[0];
-    size_t lag = 0;
+    long int lag = 0;
     for (size_t i = 1; i < length; ++i) {
         abs = fabs(results[i]);
         if (abs > max) {
@@ -159,14 +159,20 @@ int cross_correlation(double *input1, double *input2, const size_t input_length,
         }
     }
 
-    // Shifting the first array to the left or to the right by the calculated
-    // lag, reusing the previous results array.
-    // The zero-padding can be ignored from now on.
-    size_t shift_i;
-    memcpy(results, data1, sizeof(double) * input_length);
-    for (size_t i = 0; i < input_length; ++i) {
-        shift_i = (i + lag + input_length) % input_length;
-        data1[i] = results[shift_i];
+    // If the lag is greater than the input array itself, it means that the
+    // displacement that has to be performed is to the right, and otherwise
+    // to the left.
+    if (lag > (long int) input_length) {
+        // Performing the displacement to the right
+        lag = (long int) input_length - (lag % (long int) input_length);
+        memmove(data1 + lag, data1, sizeof(double) * (input_length - lag));
+        memset(data1, 0, sizeof(double) * lag);
+        *displacement = lag;
+    } else {
+        // Performing the displacement to the left
+        memmove(data1, data1 + lag, sizeof(double) * (input_length - lag));
+        memset(data1 + (input_length - lag), 0, sizeof(double) * lag);
+        *displacement = -lag;
     }
 
     // Calculating the Pearson Correlation Coefficient:
@@ -197,12 +203,7 @@ int cross_correlation(double *input1, double *input2, const size_t input_length,
     // Checking that the resulting coefficient isn't NaN
     if (*coefficient != *coefficient) goto finish;
 
-    // The returned value should be negative if the displacement is larger
-    // than the size of the input array (meaning that the displacement is
-    // inverted).
-    *displacement = (lag < input_length) ? lag : -(lag % input_length);
-
-    fprintf(stderr, "audiosync: %d frames of delay with a confidence of %f\n", *displacement, *coefficient);
+    fprintf(stderr, "audiosync: %ld frames of delay with a confidence of %f\n", *displacement, *coefficient);
 
 #ifdef DEBUG
     fprintf(stderr, "audiosync: Result obtained in %f secs\n", (clock() - start) / (double) CLOCKS_PER_SEC);

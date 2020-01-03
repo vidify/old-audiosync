@@ -23,7 +23,7 @@
 #include <vidify_audiosync/download/linux_download.h>
 
 
-int get_lag(char *yt_title) {
+long int get_lag(char *yt_title) {
     // The audio data.
     double *arr1, *arr2;
     // Variable used to indicate the other threads to end. Any value other
@@ -98,7 +98,7 @@ int get_lag(char *yt_title) {
         goto finish;
     }
 
-    int lag;
+    long int lag;
     double confidence;
     for (size_t i = 0; i < n_intervals; ++i) {
         // Waits for both threads to finish their interval.
