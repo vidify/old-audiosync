@@ -33,7 +33,7 @@ make
 ./apps/main "SONG NAME"
 ```
 
-Use `-DCMAKE_BUILD_TYPE=Debug` to enable debugging and save plots into the images directory. You'll need `gnuplot` installed for that.
+Use `-DCMAKE_BUILD_TYPE=Debug` to enable debugging and save plots into the images directory. You'll need `gnuplot` installed for that, and a directory named `images`.
 
 * `apps/main.py`: the actual module usage. You can simply use `python main.py "SONG NAME"`
 

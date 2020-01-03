@@ -44,3 +44,4 @@ etc/
 share/
 tests/tests
 examples/example
+compile_commands.json

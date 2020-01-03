@@ -3,6 +3,7 @@
 #include <assert.h>
 #include <math.h>
 #include <vidify_audiosync/cross_correlation.h>
+#include <vidify_audiosync/global.h>
 
 
 // Testing the cross_correlation function. These results can be compared to
@@ -10,7 +11,8 @@
 // https://ch.mathworks.com/help/matlab/ref/xcorr.html
 // or with the Python sketch in dev/sketch.py
 int main() {
-    int ret, lag;
+    int ret;
+    long int lag;
     size_t length;
     double coefficient;
 
@@ -33,12 +35,12 @@ int main() {
 
     // Both arrays are linearly equal.
     double arr5[] = { 1,2,3,4,5,6 };
-    double arr6[] = { 4,5,6,1,2,3 };
+    double arr6[] = { 3,4,5,6,1,2 };
     length = sizeof(arr5) / sizeof(*arr5);
     ret = cross_correlation(arr5, arr6, length, &lag, &coefficient);
     assert(ret == 0);
-    assert(lag == 3);
-    assert(coefficient == 1.0);
+    assert(lag == -2);
+    assert(coefficient > MIN_CONFIDENCE);
 
     // Similar to the test above, but the other way around.
     double arr7[] = { 4,5,6,1,2,3 };
@@ -46,8 +48,8 @@ int main() {
     length = sizeof(arr7) / sizeof(*arr7);
     ret = cross_correlation(arr7, arr8, length, &lag, &coefficient);
     assert(ret == 0);
-    assert(lag == -3);
-    assert(coefficient == 1.0);
+    assert(lag == 3);
+    assert(coefficient > MIN_CONFIDENCE);
 
     // Other simple tests
     double arr9[] = { 1,2,3,4,0,0,0 };
@@ -55,16 +57,16 @@ int main() {
     length = sizeof(arr9) / sizeof(*arr9);
     ret = cross_correlation(arr9, arr10, length, &lag, &coefficient);
     assert(ret == 0);
-    assert(lag == 2);
-    assert(coefficient == 1.0);
+    assert(lag == -2);
+    assert(coefficient > MIN_CONFIDENCE);
 
     double arr11[] = { 3,4,0,0,0,1,2 };
     double arr12[] = { 1,2,3,4,0,0,0 };
     length = sizeof(arr11) / sizeof(*arr11);
     ret = cross_correlation(arr11, arr12, length, &lag, &coefficient);
     assert(ret == 0);
-    assert(lag == -5);
-    assert(coefficient == 1.0);
+    assert(lag == 2);
+    assert(coefficient > MIN_CONFIDENCE);
 
     // Using a sine wave with positive linear correlation (same function).
     length = 1000;
@@ -76,7 +78,7 @@ int main() {
     ret = cross_correlation(arr13, arr14, length, &lag, &coefficient);
     assert(ret == 0);
     assert(lag == 0);
-    assert(coefficient == 1.0);
+    assert(coefficient > MIN_CONFIDENCE);
 
     // Using a sine wave with negative linear correlation.
     double arr15[length];
@@ -87,8 +89,8 @@ int main() {
     }
     ret = cross_correlation(arr15, arr16, length, &lag, &coefficient);
     assert(ret == 0);
-    assert(lag == 1);
-    assert(coefficient < -0.95);  // Leaving a margin for precision
+    assert(lag == -1);
+    assert(coefficient < -MIN_CONFIDENCE);  // Leaving a margin for precision
 
     return 0;
 }

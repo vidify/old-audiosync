@@ -52,7 +52,8 @@ void read_pipe(struct thread_data *data, char *args[]) {
             // Reading the data from ffmpeg one by one. If a buffer is used,
             // the read data is incorrect. I should investigate more about this
             // though, as I don't fully understand why this happens.
-            if (read(wav_pipe[READ_END], (data->buf + data->len), sizeof(*(data->buf))) < 0) {
+            if (read(wav_pipe[READ_END], (data->buf + data->len),
+                     sizeof(*(data->buf))) < 0) {
                 perror("audiosync: read for wav_pipe");
                 break;
             }

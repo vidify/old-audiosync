@@ -42,5 +42,7 @@ if ((CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME) AND BUILD_TESTING)
     add_subdirectory(tests)
 endif ()
 
-# To generate compile_commands.json use this in the build/ directory:
-# cmake -H.. -BDebug -DCMAKE_BUILD_TYPE=Debug -DCMAKE_EXPORT_COMPILE_COMMANDS=YES
+# To generate compile_commands.json use this in the build directory:
+# cmake -H.. -DCMAKE_EXPORT_COMPILE_COMMANDS=YES
+# cd ..
+# ln -s build/compile_commands.json .

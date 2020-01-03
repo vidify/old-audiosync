@@ -57,12 +57,13 @@ static void *fft(void *thread_arg) {
 // images directory. The titles assume that `input1` is the captured data,
 // and `input2` is the downloaded data.
 //
-// Returns the lag in frames the second data set has over the first one, with
+// Returns the lag in frames the first data set has over the second one, with
 // a confidence between -1 and 1.
 //
-// In case of error, the function returns -1
-int cross_correlation(double *input1, double *input2, const size_t input_length,
-                      long int *displacement, double *coefficient) {
+// In case of error, the function returns -1.
+int cross_correlation(double *input1, double *input2,
+                      const size_t input_length, long int *displacement,
+                      double *coefficient) {
 #ifdef DEBUG
     // Benchmarking the matching function
     clock_t start = clock();
@@ -82,11 +83,13 @@ int cross_correlation(double *input1, double *input2, const size_t input_length,
 
 #ifdef DEBUG
     // Plotting the output with gnuplot
-    fprintf(stderr, "audiosync: Saving initial plot to '%ld_original.png'\n", input_length);
+    fprintf(stderr, "audiosync: Saving initial plot to '%ld_original.png'\n",
+            input_length);
     FILE *gnuplot = popen("gnuplot", "w");
     fprintf(gnuplot, "set term 'png'\n");
     fprintf(gnuplot, "set output 'images/%ld_original.png'\n", input_length);
-    fprintf(gnuplot, "plot '-' with lines title 'downloaded', '-' with lines title 'captured'\n");
+    fprintf(gnuplot, "plot '-' with lines title 'downloaded', '-' with lines"
+            " title 'captured'\n");
     for (size_t i = 0; i < input_length; ++i)
         fprintf(gnuplot, "%f\n", data2[i]);
     fprintf(gnuplot, "e\n");
@@ -175,7 +178,7 @@ int cross_correlation(double *input1, double *input2, const size_t input_length,
         *displacement = -lag;
     }
 
-    // Calculating the Pearson Correlation Coefficient:
+    // Calculating the Pearson Correlation Coefficient applying the formula:
     // https://en.wikipedia.org/wiki/Pearson_correlation_coefficient#For_a_sample
     // 1. The average for both datasets.
     double sum1 = 0.0;
@@ -203,17 +206,20 @@ int cross_correlation(double *input1, double *input2, const size_t input_length,
     // Checking that the resulting coefficient isn't NaN
     if (*coefficient != *coefficient) goto finish;
 
-    fprintf(stderr, "audiosync: %ld frames of delay with a confidence of %f\n", *displacement, *coefficient);
+    fprintf(stderr, "audiosync: %ld frames of delay with a confidence of %f\n",
+            *displacement, *coefficient);
 
 #ifdef DEBUG
-    fprintf(stderr, "audiosync: Result obtained in %f secs\n", (clock() - start) / (double) CLOCKS_PER_SEC);
+    fprintf(stderr, "audiosync: Result obtained in %f secs\n",
+            (clock() - start) / (double) CLOCKS_PER_SEC);
 
     // Plotting the output with gnuplot
     fprintf(stderr, "audiosync: Saving plot to '%ld.png'\n", input_length);
     gnuplot = popen("gnuplot", "w");
     fprintf(gnuplot, "set term 'png'\n");
     fprintf(gnuplot, "set output 'images/%ld.png'\n", input_length);
-    fprintf(gnuplot, "plot '-' with lines title 'downloaded', '-' with lines title 'captured'\n");
+    fprintf(gnuplot, "plot '-' with lines title 'downloaded', '-' with lines"
+            " title 'captured'\n");
     for (size_t i = 0; i < input_length; ++i)
         fprintf(gnuplot, "%f\n", data2[i]);
     fprintf(gnuplot, "e\n");

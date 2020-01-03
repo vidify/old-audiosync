@@ -15,6 +15,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <pthread.h>
+#include <math.h>
 #include <fftw3.h>
 #include <string.h>
 #include <vidify_audiosync/global.h>
@@ -93,7 +94,8 @@ long int get_lag(char *yt_title) {
         perror("audiosync: pthread_create error");
         goto finish;
     }
-    if (pthread_create(&down_th, NULL, &download, (void *) &down_th_params) < 0) {
+    if (pthread_create(&down_th, NULL, &download,
+                       (void *) &down_th_params) < 0) {
         perror("audiosync: pthread_create error");
         goto finish;
     }
@@ -108,16 +110,18 @@ long int get_lag(char *yt_title) {
         }
         pthread_mutex_unlock(&global_mutex);
 
-        printf("audiosync: Next interval (%ld): cap=%ld down=%ld\n", i, cap_params.len, down_params.len);
+        printf("audiosync: Next interval (%ld): cap=%ld down=%ld\n", i,
+               cap_params.len, down_params.len);
 
         // Running the cross correlation algorithm and checking for errors.
-        if (cross_correlation(arr1, arr2, intervals[i], &lag, &confidence) < 0) {
+        if (cross_correlation(arr1, arr2, intervals[i], &lag,
+                              &confidence) < 0) {
             continue;
         }
-        lag = round((double) lag * FRAMES_TO_MS);
 
         // If the returned confidence is higher or equal than the minimum
         // required, the program ends with the obtained result.
+        lag = round((double) lag * FRAMES_TO_MS);
         if (confidence >= MIN_CONFIDENCE) {
             // Indicating the threads to finish, and waiting for them to
             // finish safely.
