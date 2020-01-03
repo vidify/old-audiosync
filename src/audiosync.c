@@ -114,7 +114,7 @@ long int get_lag(char *yt_title) {
         if (cross_correlation(arr1, arr2, intervals[i], &lag, &confidence) < 0) {
             continue;
         }
-        lag = (double) lag * FRAMES_TO_MS;
+        lag = round((double) lag * FRAMES_TO_MS);
 
         // If the returned confidence is higher or equal than the minimum
         // required, the program ends with the obtained result.
