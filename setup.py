@@ -19,7 +19,7 @@ setup(
     name = 'vidify-audiosync',
     version = '1.0',
     description='Vidify extension to synchronize a YouTube video with the'
-    ' audio playing on your computer.',
+    ' audio playing on your device.',
     long_description=open('README.md', 'r').read(),
     long_description_content_type='text/markdown',
     url='https://github.com/marioortizmanero/vidify-audiosync',

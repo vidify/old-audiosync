@@ -53,33 +53,25 @@ static void *fft(void *thread_arg) {
 // calculate the circular cross-correlation rather than the regular
 // cross-correlation.
 //
-// Note: if debugging mode is enabled, plots of each run will be saved in an
-// images directory. The titles assume that `input1` is the captured data,
-// and `input2` is the downloaded data.
-//
-// Returns the lag in frames the first data set has over the second one, with
-// a confidence between -1 and 1.
+// Returns the lag in frames the sample has over the source, with a confidence
+// between -1 and 1.
 //
 // In case of error, the function returns -1.
-int cross_correlation(double *input1, double *input2,
+int cross_correlation(double *input_source, double *input_sample,
                       const size_t input_length, long int *displacement,
                       double *coefficient) {
-#ifdef DEBUG
-    // Benchmarking the matching function
-    clock_t start = clock();
-#endif
-    double *data1, *data2, *results;
+    double *source, *sample, *results;
     double complex *arr1, *arr2;
     const size_t length = input_length * 2;
     int ret = -1;
 
     // Zero padding the data.
-    data1 = fftw_alloc_real(length);
-    memcpy(data1, input1, input_length * sizeof(double));
-    memset(data1 + input_length, 0, (length - input_length) * sizeof(double));
-    data2 = fftw_alloc_real(length);
-    memcpy(data2, input2, input_length * sizeof(double));
-    memset(data2 + input_length, 0, (length - input_length) * sizeof(double));
+    source = fftw_alloc_real(length);
+    memcpy(source, input_source, input_length * sizeof(double));
+    memset(source + input_length, 0, (length - input_length) * sizeof(double));
+    sample = fftw_alloc_real(length);
+    memcpy(sample, input_sample, input_length * sizeof(double));
+    memset(sample + input_length, 0, (length - input_length) * sizeof(double));
 
 #ifdef DEBUG
     // Plotting the output with gnuplot
@@ -88,17 +80,20 @@ int cross_correlation(double *input1, double *input2,
     FILE *gnuplot = popen("gnuplot", "w");
     fprintf(gnuplot, "set term 'png'\n");
     fprintf(gnuplot, "set output 'images/%ld_original.png'\n", input_length);
-    fprintf(gnuplot, "plot '-' with lines title 'downloaded', '-' with lines"
-            " title 'captured'\n");
+    fprintf(gnuplot, "plot '-' with lines title 'sample', '-' with lines"
+            " title 'source'\n");
     for (size_t i = 0; i < input_length; ++i)
-        fprintf(gnuplot, "%f\n", data2[i]);
+        fprintf(gnuplot, "%f\n", sample[i]);
     fprintf(gnuplot, "e\n");
     // The second audio file starts at samplesDelay
     for (size_t i = 0; i < input_length; ++i)
-        fprintf(gnuplot, "%f\n", data1[i]);
+        fprintf(gnuplot, "%f\n", source[i]);
     fprintf(gnuplot, "e\n");
     fflush(gnuplot);
     pclose(gnuplot);
+
+    // Benchmarking the matching function
+    clock_t start = clock();
 #endif
 
     // Getting the complex results from both FFT. The output length for the
@@ -112,13 +107,13 @@ int cross_correlation(double *input1, double *input2,
     pthread_mutex_t fft_mutex = PTHREAD_MUTEX_INITIALIZER;
     pthread_t fft1_thread, fft2_thread;
     struct fftw_data fft1_data = {
-        .real = data1,
+        .real = source,
         .cpx = arr1,
         .length = length,
         .mutex = &fft_mutex
     };
     struct fftw_data fft2_data = {
-        .real = data2,
+        .real = sample,
         .cpx = arr2,
         .length = length,
         .mutex = &fft_mutex
@@ -163,19 +158,19 @@ int cross_correlation(double *input1, double *input2,
     }
 
     // If the lag is greater than the input array itself, it means that the
-    // displacement that has to be performed is to the right, and otherwise
-    // to the left.
+    // displacement that has to be performed is to the left, and otherwise
+    // to the right.
     if (lag > (long int) input_length) {
-        // Performing the displacement to the right
-        lag = (long int) input_length - (lag % (long int) input_length);
-        memmove(data1 + lag, data1, sizeof(double) * (input_length - lag));
-        memset(data1, 0, sizeof(double) * lag);
-        *displacement = lag;
-    } else {
         // Performing the displacement to the left
-        memmove(data1, data1 + lag, sizeof(double) * (input_length - lag));
-        memset(data1 + (input_length - lag), 0, sizeof(double) * lag);
+        lag = (long int) input_length - (lag % (long int) input_length);
+        memmove(sample, sample + lag, sizeof(double) * (input_length - lag));
+        memset(sample + (input_length - lag), 0, sizeof(double) * lag);
         *displacement = -lag;
+    } else {
+        // Performing the displacement to the right
+        memmove(sample + lag, sample, sizeof(double) * (input_length - lag));
+        memset(sample, 0, sizeof(double) * lag);
+        *displacement = lag;
     }
 
     // Calculating the Pearson Correlation Coefficient applying the formula:
@@ -184,8 +179,8 @@ int cross_correlation(double *input1, double *input2,
     double sum1 = 0.0;
     double sum2 = 0.0;
     for (size_t i = 0; i < input_length; ++i) {
-         sum1 += data1[i];
-         sum2 += data2[i];
+         sum1 += source[i];
+         sum2 += sample[i];
     }
     double avg1 = sum1 / input_length;
     double avg2 = sum2 / input_length;
@@ -195,8 +190,8 @@ int cross_correlation(double *input1, double *input2,
     double diff1_squared = 0.0;
     double diff2_squared = 0.0;
     for (size_t i = 0; i < input_length; ++i) {
-        diff1 = data1[i] - avg1;
-        diff2 = data2[i] - avg2;
+        diff1 = source[i] - avg1;
+        diff2 = sample[i] - avg2;
         diffprod += diff1 * diff2;
         diff1_squared += diff1 * diff1;
         diff2_squared += diff2 * diff2;
@@ -218,14 +213,14 @@ int cross_correlation(double *input1, double *input2,
     gnuplot = popen("gnuplot", "w");
     fprintf(gnuplot, "set term 'png'\n");
     fprintf(gnuplot, "set output 'images/%ld.png'\n", input_length);
-    fprintf(gnuplot, "plot '-' with lines title 'downloaded', '-' with lines"
-            " title 'captured'\n");
+    fprintf(gnuplot, "plot '-' with lines title 'sample', '-' with lines"
+            " title 'source'\n");
     for (size_t i = 0; i < input_length; ++i)
-        fprintf(gnuplot, "%f\n", data2[i]);
+        fprintf(gnuplot, "%f\n", sample[i]);
     fprintf(gnuplot, "e\n");
     // The second audio file starts at samplesDelay
     for (size_t i = 0; i < input_length; ++i)
-        fprintf(gnuplot, "%f\n", data1[i]);
+        fprintf(gnuplot, "%f\n", source[i]);
     fprintf(gnuplot, "e\n");
     fflush(gnuplot);
     pclose(gnuplot);
@@ -234,8 +229,8 @@ int cross_correlation(double *input1, double *input2,
     ret = 0;
 
 finish:
-    if (data1) fftw_free(data1);
-    if (data2) fftw_free(data2);
+    if (source) fftw_free(source);
+    if (sample) fftw_free(sample);
     if (arr1) fftw_free(arr1);
     if (arr2) fftw_free(arr2);
     if (results) fftw_free(results);

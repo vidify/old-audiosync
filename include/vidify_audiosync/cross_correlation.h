@@ -12,12 +12,8 @@
 // calculate the circular cross-correlation rather than the regular
 // cross-correlation.
 //
-// Note: if debugging mode is enabled, plots of each run will be saved in an
-// images directory. The titles assume that `input1` is the captured data,
-// and `input2` is the downloaded data.
-//
-// Returns the lag in frames the first data set has over the second one, with
-// a confidence between -1 and 1.
+// Returns the lag in frames the sample has over the source, with a confidence
+// between -1 and 1.
 //
 // In case of error, the function returns -1.
 int cross_correlation(double *data1, double *data2, const size_t length,
