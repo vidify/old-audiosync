@@ -49,11 +49,11 @@ long int get_lag(char *yt_title) {
     const size_t length = intervals[n_intervals-1];
 
     // Allocated using malloc because the stack doesn't have enough memory.
-    cap_sample = malloc(length * sizeof(double));
+    cap_sample = malloc(length * sizeof(*cap_sample));
     if (cap_sample == NULL) {
         perror("audiosync: cap_sample malloc error");
     }
-    yt_source = malloc(length * sizeof(double));
+    yt_source = malloc(length * sizeof(*yt_source));
     if (yt_source == NULL) {
         perror("audiosync: yt_source malloc error");
     }

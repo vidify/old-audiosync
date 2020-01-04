@@ -74,15 +74,17 @@ int cross_correlation(double *input_source, double *input_sample,
         perror("audiosync: source fftw_alloc_real error");
         goto finish;
     }
-    memcpy(source, input_source, input_length * sizeof(double));
-    memset(source + input_length, 0, (length - input_length) * sizeof(double));
+    memcpy(source, input_source, input_length * sizeof(*source));
+    memset(source + input_length, 0,
+           (length - input_length) * sizeof(*source));
     sample = fftw_alloc_real(length);
     if (sample == NULL) {
         perror("audiosync: sample fftw_alloc_real error");
         goto finish;
     }
-    memcpy(sample, input_sample, input_length * sizeof(double));
-    memset(sample + input_length, 0, (length - input_length) * sizeof(double));
+    memcpy(sample, input_sample, input_length * sizeof(*sample));
+    memset(sample + input_length, 0,
+           (length - input_length) * sizeof(*sample));
 
 #ifdef DEBUG
     // Plotting the output with gnuplot

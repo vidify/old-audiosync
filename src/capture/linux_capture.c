@@ -9,10 +9,9 @@
 // NOTE: for now requires to change the captured sink in pavucontrol to
 // 'Monitor of ...'. Otherwise the results will be empty.
 void *capture(void *arg) {
-    struct thread_data *data;
-    data = (struct thread_data *) arg;
+    struct thread_data *data = arg;
 
-    fprintf(stderr, "audiosync: Starting to read the capture pipe\n");
+    // Finally starting to record the audio with ffmpeg.
     char *args[] = {
         "ffmpeg", "-y", "-to", MAX_SECONDS_STR, "-f", "pulse", "-i", "default",
         "-ac", NUM_CHANNELS_STR, "-r", SAMPLE_RATE_STR, "-f", "f64le",

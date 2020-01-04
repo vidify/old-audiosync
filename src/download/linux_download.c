@@ -12,20 +12,22 @@
 
 
 void *download(void *arg) {
-    struct down_data *data;
-    data = (struct down_data *) arg;
+    struct down_data *data = arg;
 
-    char *url = malloc(sizeof(char) * MAX_LONG_URL);
+    char *url;
+    url = malloc(sizeof(*url) * MAX_LONG_URL);
     if (url == NULL) {
         perror("audiosync: malloc error");
         goto finish;
     }
 
+    // Obtaining the youtube-dl direct URL to download.
     if (get_audio_url(data->yt_title, &url) < 0) {
         fprintf(stderr, "audiosync: Could not obtain youtube url.\n");
         goto finish;
     }
 
+    // Finally downloading the track data with ffmpeg.
     char *args[] = {
         "ffmpeg", "-y", "-to", MAX_SECONDS_STR, "-i", url, "-ac",
         NUM_CHANNELS_STR, "-r", SAMPLE_RATE_STR, "-f", "f64le", "pipe:1", NULL

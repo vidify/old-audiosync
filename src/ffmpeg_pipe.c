@@ -1,27 +1,31 @@
+#define _POSIX_SOURCE  // kill() isn't technically a Linux function
 #include <stdio.h>
 #include <stdlib.h>
 #include <pthread.h>
-#include <sys/wait.h>
-#include <sys/types.h>
 #include <signal.h>
 #include <unistd.h>
+#include <sys/types.h>
+#include <sys/wait.h>
 #include <vidify_audiosync/global.h>
 
 #define READ_END 0
 #define WRITE_END 1
 
 
-void read_pipe(struct thread_data *data, char *args[]) {
+// Executes the ffmpeg command in the arguments and pipes its data into the
+// provided array.
+int read_pipe(struct thread_data *data, char *args[]) {
+    int ret = -1;
     int wav_pipe[2];
     if (pipe(wav_pipe) < 0) {
         perror("audiosync: pipe for wav_pipe error");
-        return;
+        goto finish;
     }
 
     pid_t pid = fork();
     if (pid < 0) {
         perror("audiosync: fork in read_pipe error");
-        return;
+        goto finish;
     } else if (pid == 0) {
         // Child process (ffmpeg), doesn't read the pipe.
         close(wav_pipe[READ_END]);
@@ -30,7 +34,10 @@ void read_pipe(struct thread_data *data, char *args[]) {
         dup2(wav_pipe[WRITE_END], 1);
 
         execvp("ffmpeg", args);
+
+        // If this part of the code is executed, it means that execvp failed.
         fprintf(stderr, "audiosync: ffmpeg command failed.\n");
+        goto finish;
     } else {
         // Parent process (reading the output pipe), doesn't write.
         close(wav_pipe[WRITE_END]);
@@ -55,7 +62,7 @@ void read_pipe(struct thread_data *data, char *args[]) {
             if (read(wav_pipe[READ_END], (data->buf + data->len),
                      sizeof(*(data->buf))) < 0) {
                 perror("audiosync: read for wav_pipe");
-                break;
+                goto finish;
             }
             data->len++;
 
@@ -71,5 +78,10 @@ void read_pipe(struct thread_data *data, char *args[]) {
         close(wav_pipe[READ_END]);
         wait(NULL);
     }
+
+    ret = 0;
+
+finish:
+    return ret;
 }
 
