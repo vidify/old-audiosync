@@ -65,11 +65,22 @@ int cross_correlation(double *input_source, double *input_sample,
     const size_t length = input_length * 2;
     int ret = -1;
 
-    // Zero padding the data.
+    // Zero padding the data, allocating it in a new array with the new size.
+    // fftw_alloc_* use fftw_malloc, which is an equivalent of running 
+    // malloc + memalign. This means that it may also return NULL in case of
+    // error.
     source = fftw_alloc_real(length);
+    if (source == NULL) {
+        perror("audiosync: source fftw_alloc_real error");
+        goto finish;
+    }
     memcpy(source, input_source, input_length * sizeof(double));
     memset(source + input_length, 0, (length - input_length) * sizeof(double));
     sample = fftw_alloc_real(length);
+    if (sample == NULL) {
+        perror("audiosync: sample fftw_alloc_real error");
+        goto finish;
+    }
     memcpy(sample, input_sample, input_length * sizeof(double));
     memset(sample + input_length, 0, (length - input_length) * sizeof(double));
 
@@ -100,12 +111,24 @@ int cross_correlation(double *input_source, double *input_sample,
     // complex numbers is n/2+1.
     const size_t cpx_length = (length / 2) + 1;
     arr1 = fftw_alloc_complex(cpx_length);
+    if (arr1 == NULL) {
+        perror("audiosync: arr1 fftw_alloc_real error");
+        goto finish;
+    }
     arr2 = fftw_alloc_complex(cpx_length);
+    if (arr2 == NULL) {
+        perror("audiosync: arr2 fftw_alloc_real error");
+        goto finish;
+    }
     results = fftw_alloc_real(length);
+    if (results == NULL) {
+        perror("audiosync: results fftw_alloc_real error");
+        goto finish;
+    }
 
     // Initializing the threads and running them
     pthread_mutex_t fft_mutex = PTHREAD_MUTEX_INITIALIZER;
-    pthread_t fft1_thread, fft2_thread;
+    pthread_t fft1_th, fft2_th;
     struct fftw_data fft1_data = {
         .real = source,
         .cpx = arr1,
@@ -118,20 +141,20 @@ int cross_correlation(double *input_source, double *input_sample,
         .length = length,
         .mutex = &fft_mutex
     };
-    if (pthread_create(&fft1_thread, NULL, &fft, (void *) &fft1_data) < 0) {
-        perror("audiosync: pthread_create for fft1_thread error");
+    if (pthread_create(&fft1_th, NULL, &fft, (void *) &fft1_data) < 0) {
+        perror("audiosync: pthread_create for fft1_th error");
         goto finish;
     }
-    if (pthread_create(&fft2_thread, NULL, &fft, (void *) &fft2_data) < 0) {
-        perror("audiosync: pthread_create for fft2_thread error");
+    if (pthread_create(&fft2_th, NULL, &fft, (void *) &fft2_data) < 0) {
+        perror("audiosync: pthread_create for fft2_th error");
         goto finish;
     }
-    if (pthread_join(fft1_thread, NULL) < 0) {
-        perror("audiosync: pthread_join for fft1_thread error");
+    if (pthread_join(fft1_th, NULL) < 0) {
+        perror("audiosync: pthread_join for fft1_th error");
         goto finish;
     }
-    if (pthread_join(fft2_thread, NULL) < 0) {
-        perror("audiosync: pthread_join for fft2_thread error");
+    if (pthread_join(fft2_th, NULL) < 0) {
+        perror("audiosync: pthread_join for fft2_th error");
         goto finish;
     }
 
@@ -146,13 +169,13 @@ int cross_correlation(double *input_source, double *input_sample,
     fftw_destroy_plan(p);
 
     // Getting the results: the index of the maximum value is the desired lag.
-    double abs;
+    double abs_result;
     double max = results[0];
     long int lag = 0;
     for (size_t i = 1; i < length; ++i) {
-        abs = fabs(results[i]);
-        if (abs > max) {
-            max = abs;
+        abs_result = fabs(results[i]);
+        if (abs_result > max) {
+            max = abs_result;
             lag = i;
         }
     }
@@ -162,7 +185,7 @@ int cross_correlation(double *input_source, double *input_sample,
     // to the right.
     size_t shift_start = 0;
     size_t shift_end = input_length;
-    if (lag > (long int) input_length) {
+    if (lag >= (long int) input_length) {
         // Performing the displacement to the left
         lag = (long int) input_length - (lag % (long int) input_length);
         shift_end = (input_length - lag);

@@ -31,7 +31,7 @@ long int get_lag(char *yt_title) {
     // than zero means that it should terminate. It starts at zero so that
     // if any function call fails and does a `goto finish`, the returned
     // value will be zero.
-    int end = 0;
+    volatile int end = 0;
 
     // The algorithm will be run in these intervals. When both threads signal
     // that their interval is finished, the cross correlation will be

@@ -31,7 +31,7 @@ struct thread_data {
     const size_t n_intervals;
     pthread_mutex_t *mutex;
     pthread_cond_t *done;
-    int *end;
+    volatile int *end;
 };
 struct down_data {
     char *yt_title;

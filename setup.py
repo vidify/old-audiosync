@@ -1,13 +1,18 @@
 from setuptools import setup, Extension
 
+
+defines = []
+args = ['-fno-finite-math-only']
+
+# "Debug mode" flags by uncommenting them
+defines.append(('DEBUG', '1'))
+args.extend(['-Wextra', '-Wpedantic'])
+
 audiosync = Extension(
     'vidify_audiosync',
-    # If these are uncommented and the extra_compile_args option blow is
-    # uncommented, the module will plot the results in the images/ directory.
-    # define_macros = [('DEBUG', '1')],
-    # extra_compile_args = ['-Iinclude', '-Wextra', '-Wpedantic'],
-    extra_compile_args = ['-Iinclude'],
-    include_dirs = ['/usr/local/include'],
+    define_macros = defines,
+    extra_compile_args = args,
+    include_dirs = ['/usr/local/include', 'include'],
     libraries = ['m', 'pthread', 'fftw3'],
     library_dirs = ['/usr/local/lib'],
     sources = ['src/bind.c', 'src/audiosync.c', 'src/cross_correlation.c',
@@ -16,8 +21,8 @@ audiosync = Extension(
 )
 
 setup(
-    name = 'vidify-audiosync',
-    version = '1.0',
+    name='vidify-audiosync',
+    version='0.1',
     description='Vidify extension to synchronize a YouTube video with the'
     ' audio playing on your device.',
     long_description=open('README.md', 'r').read(),
@@ -37,7 +42,8 @@ setup(
         'License :: OSI Approved :: MIT License',
         'Programming Language :: C'
     ],
-    keywords='audio synchronization cross-correlation pearson coefficient fftw',
+    keywords='audio synchronization cross-correlation pearson coefficient fft'
+    ' audio-processing ffmpeg youtube-dl fftw',
     python_requires='>=3.6',
     ext_modules = [audiosync]
 )
