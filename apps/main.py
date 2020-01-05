@@ -10,5 +10,5 @@ if len(sys.argv) != 2:
 
 # After this is printed, the music should start playing in the background too
 print("Running audiosync.get_lag")
-ret = audiosync.get_lag(sys.argv[1])
-print(f"Returned value: {ret}")
+ret, success = audiosync.get_lag(sys.argv[1])
+print(f"Obtained lag (success={success}): {ret}")

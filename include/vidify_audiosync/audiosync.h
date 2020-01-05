@@ -2,7 +2,7 @@
 #define _H_AUDIOSYNC
 
 
-int get_lag(char *url);
+int get_lag(char *yt_title, long int *lag);
 
 
 #endif /* _H_AUDIOSYNC */

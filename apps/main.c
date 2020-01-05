@@ -10,8 +10,10 @@ int main(int argc, char *argv[]) {
     }
 
     printf("Running get_lag\n");
-    long int ret = get_lag(argv[1]);
-    printf("Returned value: %ld\n", ret);
+    int ret;
+    long int lag;
+    ret = get_lag(argv[1], &lag);
+    printf("Obtained lag (ret=%d): %ld\n", ret, lag);
 
     return 0;
 }

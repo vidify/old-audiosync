@@ -24,9 +24,11 @@
 #include <vidify_audiosync/download/linux_download.h>
 
 
-long int get_lag(char *yt_title) {
+int get_lag(char *yt_title, long int *lag) {
+    int ret = -1;
     // The audio data.
     double *cap_sample, *yt_source;
+    double confidence;
     // Variable used to indicate the other threads to end. Any value other
     // than zero means that it should terminate. It starts at zero so that
     // if any function call fails and does a `goto finish`, the returned
@@ -52,10 +54,12 @@ long int get_lag(char *yt_title) {
     cap_sample = malloc(length * sizeof(*cap_sample));
     if (cap_sample == NULL) {
         perror("audiosync: cap_sample malloc error");
+        goto finish;
     }
     yt_source = malloc(length * sizeof(*yt_source));
     if (yt_source == NULL) {
         perror("audiosync: yt_source malloc error");
+        goto finish;
     }
 
     // Launching the threads
@@ -100,12 +104,11 @@ long int get_lag(char *yt_title) {
         goto finish;
     }
 
-    long int lag;
-    double confidence;
     for (size_t i = 0; i < n_intervals; ++i) {
         // Waits for both threads to finish their interval.
         pthread_mutex_lock(&global_mutex);
-        while (cap_params.len < intervals[i] || down_params.len < intervals[i]) {
+        while (cap_params.len < intervals[i]
+               || down_params.len < intervals[i]) {
             pthread_cond_wait(&thread_done, &global_mutex);
         }
         pthread_mutex_unlock(&global_mutex);
@@ -114,14 +117,14 @@ long int get_lag(char *yt_title) {
                 i, cap_params.len, down_params.len);
 
         // Running the cross correlation algorithm and checking for errors.
-        if (cross_correlation(yt_source, cap_sample, intervals[i], &lag,
+        if (cross_correlation(yt_source, cap_sample, intervals[i], lag,
                               &confidence) < 0) {
             continue;
         }
 
         // If the returned confidence is higher or equal than the minimum
         // required, the program ends with the obtained result.
-        lag = round((double) lag * FRAMES_TO_MS);
+        *lag = round((double) (*lag) * FRAMES_TO_MS);
         if (confidence >= MIN_CONFIDENCE) {
             // Indicating the threads to finish, and waiting for them to
             // finish safely.
@@ -140,9 +143,19 @@ long int get_lag(char *yt_title) {
         }
     }
 
+    // If the end flag is still at zero, it means that no result from
+    // the cross_correlation function returned a successful value.
+    if (end == 0) {
+        goto finish;
+    }
+
+    // If it got here, it means that no errors happened and that a valid
+    // lag was found.
+    ret = 0;
+
 finish:
     if (cap_sample) free(cap_sample);
     if (yt_source) free(yt_source);
 
-    return (end == 0) ? 0 : lag;
+    return ret;
 }
