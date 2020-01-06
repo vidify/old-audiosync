@@ -18,14 +18,14 @@ int ffmpeg_pipe(struct ffmpeg_data *data, char *args[]) {
     int ret = -1;
     int wav_pipe[2];
     if (pipe(wav_pipe) < 0) {
-        perror("audiosync: pipe for wav_pipe error");
+        perror("audiosync: pipe for wav_pipe failed");
         audiosync_abort();
         goto finish;
     }
 
     pid_t pid = fork();
     if (pid < 0) {
-        perror("audiosync: fork in read_pipe error");
+        perror("audiosync: fork in read_pipe failed");
         audiosync_abort();
         goto finish;
     } else if (pid == 0) {
@@ -35,11 +35,17 @@ int ffmpeg_pipe(struct ffmpeg_data *data, char *args[]) {
         // Redirecting stdout to the pipe
         dup2(wav_pipe[WRITE_END], 1);
 
+#ifndef DEBUG
+        // Ignoring stderr when debug mode is disabled
+        freopen("/dev/null", "w", stderr);
+#endif
+
         // ffmpeg must be available on the path for exevp to work.
+        fprintf(stderr, "audiosync: running ffmpeg command\n");
         execvp("ffmpeg", args);
 
         // If this part of the code is executed, it means that execvp failed.
-        fprintf(stderr, "audiosync: ffmpeg command failed.\n");
+        fprintf(stderr, "audiosync: ffmpeg command failed\n");
         audiosync_abort();
         goto finish;
     } else {
@@ -53,7 +59,9 @@ int ffmpeg_pipe(struct ffmpeg_data *data, char *args[]) {
             // should end (accessing it atomically).
             switch (audiosync_status()) {
             case ABORT_ST:
+                fprintf(stderr, "audiosync: read ABORT_ST, quitting...\n");
                 kill(pid, SIGKILL);
+                wait(NULL);
                 goto finish;
             case PAUSED_ST:
                 // Pausing the ffmpeg process with a SIGSTOP until the
@@ -61,16 +69,21 @@ int ffmpeg_pipe(struct ffmpeg_data *data, char *args[]) {
                 fprintf(stderr, "audiosync: stopping ffmpeg\n");
                 kill(pid, SIGSTOP);
 
-                global_status_t s;
-                while ((s = audiosync_status()) == PAUSED_ST) {
+                pthread_mutex_lock(&mutex);
+                while (global_status == PAUSED_ST) {
                     pthread_cond_wait(&ffmpeg_continue, &mutex);
                 }
+                pthread_mutex_unlock(&mutex);
 
                 // After being woken up, checking if the ffmpeg process
                 // should continue or stop.
-                if (s == ABORT_ST) {
+                if (global_status == ABORT_ST) {
+                    fprintf(stderr, "audiosync: read ABORT_ST after pause,"
+                            " quitting...\n");
                     kill(pid, SIGKILL);
+                    wait(NULL);
                 } else {
+                    fprintf(stderr, "audiosync: resuming ffmpeg\n");
                     kill(pid, SIGCONT);
                 }
 
@@ -84,7 +97,7 @@ int ffmpeg_pipe(struct ffmpeg_data *data, char *args[]) {
             // the read data is incorrect.
             if (read(wav_pipe[READ_END], (data->buf + data->len),
                      sizeof(*(data->buf))) < 0) {
-                perror("audiosync: read for wav_pipe");
+                perror("audiosync: read for wav_pipe failed");
                 audiosync_abort();
                 goto finish;
             }
@@ -95,7 +108,7 @@ int ffmpeg_pipe(struct ffmpeg_data *data, char *args[]) {
                 pthread_mutex_lock(&mutex);
                 pthread_cond_signal(&interval_done);
                 pthread_mutex_unlock(&mutex);
-                interval_count++;
+                ++interval_count;
             }
         }
 

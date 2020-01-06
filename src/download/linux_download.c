@@ -18,7 +18,7 @@ void *download(void *arg) {
     char *url = NULL;
     url = malloc(sizeof(*url) * MAX_LONG_URL);
     if (url == NULL) {
-        perror("audiosync: malloc error");
+        perror("audiosync: url malloc failed");
         goto finish;
     }
     if (get_audio_url(data->title, &url) < 0) {

@@ -28,7 +28,7 @@
 #include <vidify_audiosync/download/linux_download.h>
 
 
-// Defining the variables from global.h
+// Defining the global variables from audiosync.h
 volatile global_status_t global_status = IDLE_ST;
 // If audiosync_abort or similar functions are called before audiosync_run,
 // nothing will happen, because the mutex and conditiona are initialized
@@ -37,15 +37,34 @@ pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t interval_done = PTHREAD_COND_INITIALIZER;
 pthread_cond_t ffmpeg_continue = PTHREAD_COND_INITIALIZER;
 
+// The algorithm will be run in these intervals. When both threads signal
+// that their interval is finished, the cross correlation will be calculated.
+// If it's accepted, the threads will finish and the main function will return
+// the lag.
+const size_t intervals[] = {
+    3 * SAMPLE_RATE,  // 144,000 frames
+    6 * SAMPLE_RATE,  // 288,000 frames
+    10 * SAMPLE_RATE,  // 432,000 frames
+    15 * SAMPLE_RATE,  // 576,000 frames
+    20 * SAMPLE_RATE,  // 720,000 frames
+    30 * SAMPLE_RATE,  // 1,440,000 frames
+};
+const size_t n_intervals = sizeof(intervals) / sizeof(intervals[0]);
+const size_t length = intervals[n_intervals-1];
+
 
 // The module can be controlled externally with these basic functions. They
 // expose the global status variable, which will be received from the threads
 // accordingly. These functions atomically read or write the global status.
 // They should only be called after audiosync_run(), since it initializes
-// the mutex and more.
+// the mutex and more. As they lock and unlock the mutex, calling any of the
+// following functions will block the module.
 void audiosync_abort() {
     pthread_mutex_lock(&mutex);
     global_status = ABORT_ST;
+    // The abort "wakes up" all threads waiting for something.
+    pthread_cond_broadcast(&interval_done);
+    pthread_cond_broadcast(&ffmpeg_continue);
     pthread_mutex_unlock(&mutex);
 }
 void audiosync_pause() {
@@ -74,36 +93,22 @@ global_status_t audiosync_status() {
 // This function starts the algorithm. Only one audiosync thread can be
 // running at once.
 int audiosync_run(char *yt_title, long int *lag) {
+    global_status = RUNNING_ST;
     int ret = -1;
     // The audio data.
     double *cap_sample = NULL;
     double *yt_source = NULL;
     double confidence;
 
-    // The algorithm will be run in these intervals. When both threads signal
-    // that their interval is finished, the cross correlation will be
-    // calculated. If it's accepted, the threads will finish and the main
-    // function will return the lag calculated.
-    const size_t intervals[] = {
-        3 * SAMPLE_RATE,  // 144,000 frames
-        6 * SAMPLE_RATE,  // 288,000 frames
-        10 * SAMPLE_RATE,  // 432,000 frames
-        15 * SAMPLE_RATE,  // 576,000 frames
-        20 * SAMPLE_RATE,  // 720,000 frames
-        30 * SAMPLE_RATE,  // 1,440,000 frames
-    };
-    const size_t n_intervals = sizeof(intervals) / sizeof(intervals[0]);
-    const size_t length = intervals[n_intervals-1];
-
     // Allocated using malloc because the stack doesn't have enough memory.
     cap_sample = malloc(length * sizeof(*cap_sample));
     if (cap_sample == NULL) {
-        perror("audiosync: cap_sample malloc error");
+        perror("audiosync: cap_sample malloc failed");
         goto finish;
     }
     yt_source = malloc(length * sizeof(*yt_source));
     if (yt_source == NULL) {
-        perror("audiosync: yt_source malloc error");
+        perror("audiosync: yt_source malloc failed");
         goto finish;
     }
 
@@ -127,12 +132,12 @@ int audiosync_run(char *yt_title, long int *lag) {
         .n_intervals = n_intervals,
     };
     if (pthread_create(&cap_th, NULL, &capture, (void *) &cap_args) < 0) {
-        perror("audiosync: pthread_create error");
+        perror("audiosync: pthread_create for cap_th failed");
         audiosync_abort();
         goto finish;
     }
     if (pthread_create(&down_th, NULL, &download, (void *) &down_args) < 0) {
-        perror("audiosync: pthread_create error");
+        perror("audiosync: pthread_create for down_th failed");
         audiosync_abort();
         goto finish;
     }
@@ -146,10 +151,15 @@ int audiosync_run(char *yt_title, long int *lag) {
     for (size_t i = 0; i < n_intervals; ++i) {
         // Waits for both threads to finish their interval.
         pthread_mutex_lock(&mutex);
-        while (cap_args.len < intervals[i] || down_args.len < intervals[i]) {
+        while (cap_args.len < intervals[i] || down_args.len < intervals[i]
+               || global_status == ABORT_ST) {
             pthread_cond_wait(&interval_done, &mutex);
         }
         pthread_mutex_unlock(&mutex);
+
+        if (global_status == ABORT_ST) {
+            goto finish;
+        }
 
         fprintf(stderr, "audiosync: Next interval (%ld): cap=%ld down=%ld\n",
                 i, cap_args.len, down_args.len);
@@ -169,11 +179,11 @@ int audiosync_run(char *yt_title, long int *lag) {
             success = 1;
             audiosync_abort();
             if (pthread_join(cap_th, NULL) < 0) {
-                perror("audiosync: pthread_join error");
+                perror("audiosync: pthread_join for cap_th failed");
                 goto finish;
             }
             if (pthread_join(down_th, NULL) < 0) {
-                perror("audiosync: pthread_join");
+                perror("audiosync: pthread_join for down_th failed");
                 goto finish;
             }
             break;
@@ -195,6 +205,7 @@ finish:
     if (yt_source) free(yt_source);
     // Resetting the global status.
     global_status = IDLE_ST;
+    fprintf(stderr, "audiosync: finished run\n");
 
     return ret;
 }
