@@ -15,7 +15,7 @@ void *download(void *arg) {
     struct ffmpeg_data *data = arg;
 
     // Obtaining the youtube-dl direct URL to download.
-    char *url;
+    char *url = NULL;
     url = malloc(sizeof(*url) * MAX_LONG_URL);
     if (url == NULL) {
         perror("audiosync: malloc error");

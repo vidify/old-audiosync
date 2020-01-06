@@ -44,7 +44,12 @@ extern volatile global_status_t global_status;
 // The global mutex and condition variables. They will be initialized from
 // the main function.
 extern pthread_mutex_t mutex;
+// Condition used to know when either thread has finished one of their
+// intervals.
 extern pthread_cond_t interval_done;
+// Condition used to continue the ffmpeg execution after it has been paused
+// with audiosync_pause().
+extern pthread_cond_t ffmpeg_continue;
 
 
 global_status_t audiosync_status();

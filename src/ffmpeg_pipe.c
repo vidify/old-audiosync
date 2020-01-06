@@ -52,15 +52,31 @@ int ffmpeg_pipe(struct ffmpeg_data *data, char *args[]) {
             // Checking if the main process has indicated that this thread
             // should end (accessing it atomically).
             switch (audiosync_status()) {
-                case ABORT_ST:
+            case ABORT_ST:
+                kill(pid, SIGKILL);
+                goto finish;
+            case PAUSED_ST:
+                // Pausing the ffmpeg process with a SIGSTOP until the
+                // global status is changed from PAUSED_ST.
+                kill(pid, SIGSTOP);
+
+                global_status_t s;
+                while ((s = audiosync_status()) == PAUSED_ST) {
+                    pthread_cond_wait(&ffmpeg_continue, &mutex);
+                }
+
+                // After being woken up, checking if the ffmpeg process
+                // should continue or stop.
+                if (s == ABORT_ST) {
                     kill(pid, SIGKILL);
-                    goto finish;
-                case PAUSED_ST:
-                    // TODO send sigpause, wait for continue.
-                    break;
-                default:
-                    // RUNNING_ST and IDLE_ST are ignored.
-                    break;
+                } else {
+                    kill(pid, SIGCONT);
+                }
+
+                break;
+            default:
+                // RUNNING_ST and IDLE_ST are ignored.
+                break;
             }
 
             // Reading the data from ffmpeg one by one. If a buffer is used,

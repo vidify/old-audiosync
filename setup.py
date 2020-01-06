@@ -5,8 +5,8 @@ defines = []
 args = ['-fno-finite-math-only']
 
 # "Debug mode" flags by uncommenting them
-defines.append(('DEBUG', '1'))
-args.extend(['-Wextra', '-Wpedantic'])
+#  defines.append(('DEBUG', '1'))
+#  args.extend(['-Wextra', '-Wpedantic'])
 
 audiosync = Extension(
     'vidify_audiosync',

@@ -60,8 +60,11 @@ static void *fft(void *thread_arg) {
 int cross_correlation(double *input_source, double *input_sample,
                       const size_t input_length, long int *displacement,
                       double *coefficient) {
-    double *source, *sample, *results;
-    double complex *arr1, *arr2;
+    double *source = NULL;
+    double *sample = NULL;
+    double *results = NULL;
+    double complex *arr1 = NULL;
+    double complex *arr2 = NULL;
     const size_t length = input_length * 2;
     int ret = -1;
 

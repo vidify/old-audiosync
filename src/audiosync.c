@@ -32,6 +32,7 @@
 volatile global_status_t global_status;
 pthread_mutex_t mutex;
 pthread_cond_t interval_done;
+pthread_cond_t ffmpeg_continue;
 
 
 // The module can be controlled externally with these basic functions. They
@@ -49,7 +50,10 @@ void audiosync_pause() {
 }
 void audiosync_continue() {
     pthread_mutex_lock(&mutex);
+    // Changes the global status and sends a signal to the ffmpeg threads
+    // that will be waiting.
     global_status = RUNNING_ST;
+    pthread_cond_broadcast(&ffmpeg_continue);
     pthread_mutex_unlock(&mutex);
 }
 global_status_t audiosync_status() {
@@ -73,7 +77,8 @@ int audiosync_run(char *yt_title, long int *lag) {
 
     int ret = -1;
     // The audio data.
-    double *cap_sample, *yt_source;
+    double *cap_sample = NULL;
+    double *yt_source = NULL;
     double confidence;
 
     // The algorithm will be run in these intervals. When both threads signal
@@ -111,7 +116,11 @@ int audiosync_run(char *yt_title, long int *lag) {
         goto finish;
     }
     if (pthread_cond_init(&interval_done, NULL) < 0) {
-        perror("pthread_cond_init");
+        perror("pthread_cond_init for interval_done");
+        goto finish;
+    }
+    if (pthread_cond_init(&ffmpeg_continue, NULL) < 0) {
+        perror("pthread_cond_init for ffmpeg_continue");
         goto finish;
     }
     struct ffmpeg_data cap_args = {
