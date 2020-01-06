@@ -19,12 +19,14 @@ int ffmpeg_pipe(struct ffmpeg_data *data, char *args[]) {
     int wav_pipe[2];
     if (pipe(wav_pipe) < 0) {
         perror("audiosync: pipe for wav_pipe error");
+        audiosync_abort();
         goto finish;
     }
 
     pid_t pid = fork();
     if (pid < 0) {
         perror("audiosync: fork in read_pipe error");
+        audiosync_abort();
         goto finish;
     } else if (pid == 0) {
         // Child process (ffmpeg), doesn't read the pipe.
@@ -38,6 +40,7 @@ int ffmpeg_pipe(struct ffmpeg_data *data, char *args[]) {
 
         // If this part of the code is executed, it means that execvp failed.
         fprintf(stderr, "audiosync: ffmpeg command failed.\n");
+        audiosync_abort();
         goto finish;
     } else {
         // Parent process (reading the output pipe), doesn't write.
@@ -65,6 +68,7 @@ int ffmpeg_pipe(struct ffmpeg_data *data, char *args[]) {
             if (read(wav_pipe[READ_END], (data->buf + data->len),
                      sizeof(*(data->buf))) < 0) {
                 perror("audiosync: read for wav_pipe");
+                audiosync_abort();
                 goto finish;
             }
             data->len++;

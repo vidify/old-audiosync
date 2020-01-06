@@ -132,10 +132,12 @@ int audiosync_run(char *yt_title, long int *lag) {
     };
     if (pthread_create(&cap_th, NULL, &capture, (void *) &cap_args) < 0) {
         perror("audiosync: pthread_create error");
+        audiosync_abort();
         goto finish;
     }
     if (pthread_create(&down_th, NULL, &download, (void *) &down_args) < 0) {
         perror("audiosync: pthread_create error");
+        audiosync_abort();
         goto finish;
     }
 
@@ -195,7 +197,7 @@ finish:
     if (cap_sample) free(cap_sample);
     if (yt_source) free(yt_source);
     // Resetting the global status.
-    status = IDLE_ST;
+    global_status = IDLE_ST;
 
     return ret;
 }
