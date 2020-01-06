@@ -6,7 +6,7 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/wait.h>
-#include <vidify_audiosync/global.h>
+#include <vidify_audiosync/audiosync.h>
 
 #define READ_END 0
 #define WRITE_END 1
@@ -14,7 +14,7 @@
 
 // Executes the ffmpeg command in the arguments and pipes its data into the
 // provided array.
-int read_pipe(struct thread_data *data, char *args[]) {
+int ffmpeg_pipe(struct ffmpeg_data *data, char *args[]) {
     int ret = -1;
     int wav_pipe[2];
     if (pipe(wav_pipe) < 0) {
@@ -33,6 +33,7 @@ int read_pipe(struct thread_data *data, char *args[]) {
         // Redirecting stdout to the pipe
         dup2(wav_pipe[WRITE_END], 1);
 
+        // ffmpeg must be available on the path for exevp to work.
         execvp("ffmpeg", args);
 
         // If this part of the code is executed, it means that execvp failed.
@@ -44,21 +45,23 @@ int read_pipe(struct thread_data *data, char *args[]) {
 
         int interval_count = 0;
         data->len = 0;
-        int end_thread;
         while (data->len < data->total_len) {
             // Checking if the main process has indicated that this thread
             // should end (accessing it atomically).
-            pthread_mutex_lock(data->mutex);
-            end_thread = *(data->end);
-            pthread_mutex_unlock(data->mutex);
-            if (end_thread != 0) {
-                kill(pid, SIGKILL);
-                break;
+            switch (audiosync_status()) {
+                case ABORT_ST:
+                    kill(pid, SIGKILL);
+                    goto finish;
+                case PAUSED_ST:
+                    // TODO send sigpause, wait for continue.
+                    break;
+                default:
+                    // RUNNING_ST and IDLE_ST are ignored.
+                    break;
             }
 
             // Reading the data from ffmpeg one by one. If a buffer is used,
-            // the read data is incorrect. I should investigate more about this
-            // though, as I don't fully understand why this happens.
+            // the read data is incorrect.
             if (read(wav_pipe[READ_END], (data->buf + data->len),
                      sizeof(*(data->buf))) < 0) {
                 perror("audiosync: read for wav_pipe");
@@ -68,9 +71,9 @@ int read_pipe(struct thread_data *data, char *args[]) {
 
             // Signaling the main thread when a full interval is read.
             if (data->len >= data->intervals[interval_count]) {
-                pthread_mutex_lock(data->mutex);
-                pthread_cond_signal(data->done);
-                pthread_mutex_unlock(data->mutex);
+                pthread_mutex_lock(&mutex);
+                pthread_cond_signal(&interval_done);
+                pthread_mutex_unlock(&mutex);
                 interval_count++;
             }
         }

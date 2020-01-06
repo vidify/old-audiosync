@@ -5,7 +5,13 @@
 PyObject *audiosync_get_lag(PyObject *self, PyObject *args);
 
 static PyMethodDef VidifyAudiosyncMethods[] = {
-    {"get_lag", audiosync_get_lag, METH_VARARGS, "Obtain the provided YouTube"
+    {"get_lag", audiosync_run, METH_VARARGS, "Obtain the provided YouTube"
+     " song's lag in respect to the currently playing track."},
+    {"pause", audiosync_pause, METH_NOARGS, "Obtain the provided YouTube"
+     " song's lag in respect to the currently playing track."},
+    {"continue", audiosync_continue, METH_NOARGS, "Obtain the provided YouTube"
+     " song's lag in respect to the currently playing track."},
+    {"abort", audiosync_abort, METH_NOARGS, "Obtain the provided YouTube"
      " song's lag in respect to the currently playing track."},
     {NULL, NULL, 0, NULL}
 };
@@ -31,7 +37,7 @@ PyObject *audiosync_get_lag(PyObject *self, PyObject *args) {
     int ret;
     long int lag;
     Py_BEGIN_ALLOW_THREADS
-    ret = get_lag(yt_title, &lag);
+    ret = audiosync_run(yt_title, &lag);
     Py_END_ALLOW_THREADS
 
     // Returns the obtained lag and the function exited successfully.

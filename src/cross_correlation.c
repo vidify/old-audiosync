@@ -9,7 +9,7 @@
 #include <string.h>
 #include <complex.h>
 #include <fftw3.h>
-#include <vidify_audiosync/global.h>
+#include <vidify_audiosync/audiosync.h>
 
 
 // Data structure used to pass parameters to concurrent FFTW-related functions.
