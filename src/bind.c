@@ -2,36 +2,42 @@
 #include <Python.h>
 #include <vidify_audiosync/audiosync.h>
 
-PyObject *audiosync_get_lag(PyObject *self, PyObject *args);
+
+PyObject *audiosyncmodule_pause(PyObject *self, PyObject *args);
+PyObject *audiosyncmodule_resume(PyObject *self, PyObject *args);
+PyObject *audiosyncmodule_abort(PyObject *self, PyObject *args);
+PyObject *audiosyncmodule_run(PyObject *self, PyObject *args);
+
 
 static PyMethodDef VidifyAudiosyncMethods[] = {
     {
-        "get_lag",
-        audiosync_run,
+        "run",
+        audiosyncmodule_run,
         METH_VARARGS,
         "Obtain the provided YouTube song's lag in respect to the currently"
         " playing track."
     },
     {
         "pause",
-        audiosync_pause,
+        audiosyncmodule_pause,
         METH_NOARGS,
         "Pause the audiosync job."
     },
     {
-        "continue",
-        audiosync_continue,
+        "resume",
+        audiosyncmodule_resume,
         METH_NOARGS,
         "Continue the audiosync job. This has no effect if it's not paused."
     },
     {
         "abort",
-        audiosync_abort,
+        audiosyncmodule_abort,
         METH_NOARGS,
         "Abort the audiosync job."
     },
     {NULL, NULL, 0, NULL}
 };
+
 
 static struct PyModuleDef vidify_audiosync = {
     PyModuleDef_HEAD_INIT,
@@ -41,11 +47,13 @@ static struct PyModuleDef vidify_audiosync = {
     VidifyAudiosyncMethods
 };
 
+
 PyMODINIT_FUNC PyInit_vidify_audiosync(void) {
     return PyModule_Create(&vidify_audiosync);
 }
 
-PyObject *audiosync_get_lag(PyObject *self, PyObject *args) {
+
+PyObject *audiosyncmodule_run(PyObject *self, PyObject *args) {
     char *yt_title;
     if (!PyArg_ParseTuple(args, "s", &yt_title)) {
         return NULL;
@@ -59,4 +67,31 @@ PyObject *audiosync_get_lag(PyObject *self, PyObject *args) {
 
     // Returns the obtained lag and the function exited successfully.
     return Py_BuildValue("lO", lag, ret == 0 ? Py_True : Py_False);
+}
+
+
+PyObject *audiosyncmodule_pause(PyObject *self, PyObject *args) {
+    Py_BEGIN_ALLOW_THREADS
+    audiosync_pause();
+    Py_END_ALLOW_THREADS
+
+    Py_RETURN_NONE;
+}
+
+
+PyObject *audiosyncmodule_resume(PyObject *self, PyObject *args) {
+    Py_BEGIN_ALLOW_THREADS
+    audiosync_resume();
+    Py_END_ALLOW_THREADS
+
+    Py_RETURN_NONE;
+}
+
+
+PyObject *audiosyncmodule_abort(PyObject *self, PyObject *args) {
+    Py_BEGIN_ALLOW_THREADS
+    audiosync_abort();
+    Py_END_ALLOW_THREADS
+
+    Py_RETURN_NONE;
 }

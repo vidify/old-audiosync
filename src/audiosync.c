@@ -29,15 +29,20 @@
 
 
 // Defining the variables from global.h
-volatile global_status_t global_status;
-pthread_mutex_t mutex;
-pthread_cond_t interval_done;
-pthread_cond_t ffmpeg_continue;
+volatile global_status_t global_status = IDLE_ST;
+// If audiosync_abort or similar functions are called before audiosync_run,
+// nothing will happen, because the mutex and conditiona are initialized
+// already.
+pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_cond_t interval_done = PTHREAD_COND_INITIALIZER;
+pthread_cond_t ffmpeg_continue = PTHREAD_COND_INITIALIZER;
 
 
 // The module can be controlled externally with these basic functions. They
 // expose the global status variable, which will be received from the threads
 // accordingly. These functions atomically read or write the global status.
+// They should only be called after audiosync_run(), since it initializes
+// the mutex and more.
 void audiosync_abort() {
     pthread_mutex_lock(&mutex);
     global_status = ABORT_ST;
@@ -48,7 +53,7 @@ void audiosync_pause() {
     global_status = PAUSED_ST;
     pthread_mutex_unlock(&mutex);
 }
-void audiosync_continue() {
+void audiosync_resume() {
     pthread_mutex_lock(&mutex);
     // Changes the global status and sends a signal to the ffmpeg threads
     // that will be waiting.
@@ -67,14 +72,8 @@ global_status_t audiosync_status() {
 
 
 // This function starts the algorithm. Only one audiosync thread can be
-// running at once, so it checks the global status variable before actually
-// starting.
+// running at once.
 int audiosync_run(char *yt_title, long int *lag) {
-    if (audiosync_status() != IDLE_ST) {
-        fprintf(stderr, "Cannot start another audiosync job\n");
-        return -1;
-    }
-
     int ret = -1;
     // The audio data.
     double *cap_sample = NULL;
@@ -111,18 +110,6 @@ int audiosync_run(char *yt_title, long int *lag) {
     // Launching the threads and initializing the mutex and condition
     // variables.
     pthread_t down_th, cap_th;
-    if (pthread_mutex_init(&mutex, NULL) < 0) {
-        perror("pthread_mutex_init");
-        goto finish;
-    }
-    if (pthread_cond_init(&interval_done, NULL) < 0) {
-        perror("pthread_cond_init for interval_done");
-        goto finish;
-    }
-    if (pthread_cond_init(&ffmpeg_continue, NULL) < 0) {
-        perror("pthread_cond_init for ffmpeg_continue");
-        goto finish;
-    }
     struct ffmpeg_data cap_args = {
         .title = yt_title,
         .buf = cap_sample,
@@ -155,6 +142,7 @@ int audiosync_run(char *yt_title, long int *lag) {
     int success = 0;
     // The main loop iterates through all intervals until a valid result is
     // found.
+    fprintf(stderr, "audiosync: starting interval loop\n");
     for (size_t i = 0; i < n_intervals; ++i) {
         // Waits for both threads to finish their interval.
         pthread_mutex_lock(&mutex);

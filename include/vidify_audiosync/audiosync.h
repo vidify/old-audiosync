@@ -52,11 +52,11 @@ extern pthread_cond_t interval_done;
 extern pthread_cond_t ffmpeg_continue;
 
 
-global_status_t audiosync_status();
-void audiosync_abort();
-void audiosync_pause();
-void audiosync_continue();
-int audiosync_run(char *yt_title, long int *lag);
+extern global_status_t audiosync_status();
+extern void audiosync_abort();
+extern void audiosync_pause();
+extern void audiosync_resume();
+extern int audiosync_run(char *yt_title, long int *lag);
 
 
 #endif /* _H_AUDIOSYNC */
