@@ -9,7 +9,7 @@
 #include <string.h>
 #include <complex.h>
 #include <fftw3.h>
-#include <vidify_audiosync/global.h>
+#include <vidify_audiosync/audiosync.h>
 
 
 // Data structure used to pass parameters to concurrent FFTW-related functions.
@@ -60,8 +60,11 @@ static void *fft(void *thread_arg) {
 int cross_correlation(double *input_source, double *input_sample,
                       const size_t input_length, long int *displacement,
                       double *coefficient) {
-    double *source, *sample, *results;
-    double complex *arr1, *arr2;
+    double *source = NULL;
+    double *sample = NULL;
+    double *results = NULL;
+    double complex *arr1 = NULL;
+    double complex *arr2 = NULL;
     const size_t length = input_length * 2;
     int ret = -1;
 
@@ -71,7 +74,7 @@ int cross_correlation(double *input_source, double *input_sample,
     // error.
     source = fftw_alloc_real(length);
     if (source == NULL) {
-        perror("audiosync: source fftw_alloc_real error");
+        perror("audiosync: source fftw_alloc_real failed");
         goto finish;
     }
     memcpy(source, input_source, input_length * sizeof(*source));
@@ -79,7 +82,7 @@ int cross_correlation(double *input_source, double *input_sample,
            (length - input_length) * sizeof(*source));
     sample = fftw_alloc_real(length);
     if (sample == NULL) {
-        perror("audiosync: sample fftw_alloc_real error");
+        perror("audiosync: sample fftw_alloc_real failed");
         goto finish;
     }
     memcpy(sample, input_sample, input_length * sizeof(*sample));
@@ -114,17 +117,17 @@ int cross_correlation(double *input_source, double *input_sample,
     const size_t cpx_length = (length / 2) + 1;
     arr1 = fftw_alloc_complex(cpx_length);
     if (arr1 == NULL) {
-        perror("audiosync: arr1 fftw_alloc_real error");
+        perror("audiosync: arr1 fftw_alloc_real failed");
         goto finish;
     }
     arr2 = fftw_alloc_complex(cpx_length);
     if (arr2 == NULL) {
-        perror("audiosync: arr2 fftw_alloc_real error");
+        perror("audiosync: arr2 fftw_alloc_real failed");
         goto finish;
     }
     results = fftw_alloc_real(length);
     if (results == NULL) {
-        perror("audiosync: results fftw_alloc_real error");
+        perror("audiosync: results fftw_alloc_real failed");
         goto finish;
     }
 
@@ -144,19 +147,19 @@ int cross_correlation(double *input_source, double *input_sample,
         .mutex = &fft_mutex
     };
     if (pthread_create(&fft1_th, NULL, &fft, (void *) &fft1_data) < 0) {
-        perror("audiosync: pthread_create for fft1_th error");
+        perror("audiosync: pthread_create for fft1_th failed");
         goto finish;
     }
     if (pthread_create(&fft2_th, NULL, &fft, (void *) &fft2_data) < 0) {
-        perror("audiosync: pthread_create for fft2_th error");
+        perror("audiosync: pthread_create for fft2_th failed");
         goto finish;
     }
     if (pthread_join(fft1_th, NULL) < 0) {
-        perror("audiosync: pthread_join for fft1_th error");
+        perror("audiosync: pthread_join for fft1_th failed");
         goto finish;
     }
     if (pthread_join(fft2_th, NULL) < 0) {
-        perror("audiosync: pthread_join for fft2_th error");
+        perror("audiosync: pthread_join for fft2_th failed");
         goto finish;
     }
 

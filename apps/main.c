@@ -9,10 +9,10 @@ int main(int argc, char *argv[]) {
         exit(1);
     }
 
-    printf("Running get_lag\n");
+    printf("Running audiosync\n");
     int ret;
     long int lag;
-    ret = get_lag(argv[1], &lag);
+    ret = audiosync_run(argv[1], &lag);
     printf("Obtained lag (ret=%d): %ld\n", ret, lag);
 
     return 0;

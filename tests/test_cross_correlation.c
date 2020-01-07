@@ -2,8 +2,8 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <math.h>
+#include <vidify_audiosync/audiosync.h>
 #include <vidify_audiosync/cross_correlation.h>
-#include <vidify_audiosync/global.h>
 
 
 // Testing the cross_correlation function. These results can be compared to

@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <pthread.h>
 #include <string.h>
-#include <vidify_audiosync/global.h>
+#include <vidify_audiosync/audiosync.h>
 #include <vidify_audiosync/ffmpeg_pipe.h>
 #include <vidify_audiosync/download/linux_download.h>
 
@@ -12,17 +12,16 @@
 
 
 void *download(void *arg) {
-    struct down_data *data = arg;
-
-    char *url;
-    url = malloc(sizeof(*url) * MAX_LONG_URL);
-    if (url == NULL) {
-        perror("audiosync: malloc error");
-        goto finish;
-    }
+    struct ffmpeg_data *data = arg;
 
     // Obtaining the youtube-dl direct URL to download.
-    if (get_audio_url(data->yt_title, &url) < 0) {
+    char *url = NULL;
+    url = malloc(sizeof(*url) * MAX_LONG_URL);
+    if (url == NULL) {
+        perror("audiosync: url malloc failed");
+        goto finish;
+    }
+    if (get_audio_url(data->title, &url) < 0) {
         fprintf(stderr, "audiosync: Could not obtain youtube url.\n");
         goto finish;
     }
@@ -32,7 +31,7 @@ void *download(void *arg) {
         "ffmpeg", "-y", "-to", MAX_SECONDS_STR, "-i", url, "-ac",
         NUM_CHANNELS_STR, "-r", SAMPLE_RATE_STR, "-f", "f64le", "pipe:1", NULL
     };
-    read_pipe(data->th_data, args);
+    ffmpeg_pipe(data, args);
 
 finish:
     if (url) free(url);
