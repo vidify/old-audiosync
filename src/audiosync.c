@@ -40,8 +40,9 @@ pthread_cond_t ffmpeg_continue = PTHREAD_COND_INITIALIZER;
 // The algorithm will be run in these intervals. When both threads signal
 // that their interval is finished, the cross correlation will be calculated.
 // If it's accepted, the threads will finish and the main function will return
-// the lag.
-const size_t intervals[] = {
+// the lag. The intervals for downloading and capturing audio differ, since
+// the source (download) doesn't require zero-padding inside cross_correlation.
+const size_t INTERV_SAMPLE[] = {
     3 * SAMPLE_RATE,  // 144,000 frames
     6 * SAMPLE_RATE,  // 288,000 frames
     10 * SAMPLE_RATE,  // 432,000 frames
@@ -49,8 +50,19 @@ const size_t intervals[] = {
     20 * SAMPLE_RATE,  // 720,000 frames
     30 * SAMPLE_RATE,  // 1,440,000 frames
 };
-const size_t n_intervals = sizeof(intervals) / sizeof(intervals[0]);
-const size_t length = intervals[n_intervals-1];
+const size_t N_INTERVALS = sizeof(INTERV_SAMPLE) / sizeof(INTERV_SAMPLE[0]);
+const size_t LEN_SAMPLE = INTERV_SAMPLE[N_INTERVALS-1];
+// The download intervals will always be twice as big as the capture ones,
+// and the size of n_intervals.
+const size_t INTERV_SOURCE[] = {
+    2 * INTERV_SAMPLE[0],
+    2 * INTERV_SAMPLE[1],
+    2 * INTERV_SAMPLE[2],
+    2 * INTERV_SAMPLE[3],
+    2 * INTERV_SAMPLE[4],
+    2 * INTERV_SAMPLE[5],
+};
+const size_t LEN_SOURCE = INTERV_SOURCE[N_INTERVALS-1];
 
 
 // The module can be controlled externally with these basic functions. They
@@ -96,19 +108,22 @@ int audiosync_run(char *yt_title, long int *lag) {
     global_status = RUNNING_ST;
     int ret = -1;
     // The audio data.
-    double *cap_sample = NULL;
-    double *yt_source = NULL;
+    double *sample = NULL;
+    double *source = NULL;
     double confidence;
 
-    // Allocated using malloc because the stack doesn't have enough memory.
-    cap_sample = malloc(length * sizeof(*cap_sample));
-    if (cap_sample == NULL) {
-        perror("audiosync: cap_sample malloc failed");
+    // Allocated dynamically because the stack doesn't have enough memory.
+    sample = malloc(LEN_SAMPLE * sizeof(*sample));
+    if (sample == NULL) {
+        perror("audiosync: sample malloc failed");
         goto finish;
     }
-    yt_source = malloc(length * sizeof(*yt_source));
-    if (yt_source == NULL) {
-        perror("audiosync: yt_source malloc failed");
+    // The source is allocated using fftw_malloc because the cross_correlation
+    // function doesn't copy it (unlike the sample), and it needs to be
+    // aligned for faster calculations.
+    source = fftw_alloc_real(LEN_SOURCE);
+    if (source == NULL) {
+        perror("audiosync: source fftw_alloc_real failed");
         goto finish;
     }
 
@@ -117,19 +132,19 @@ int audiosync_run(char *yt_title, long int *lag) {
     pthread_t down_th, cap_th;
     struct ffmpeg_data cap_args = {
         .title = yt_title,
-        .buf = cap_sample,
-        .total_len = length,
+        .buf = sample,
+        .total_len = LEN_SAMPLE,
         .len = 0,
-        .intervals = intervals,
-        .n_intervals = n_intervals,
+        .intervals = INTERV_SAMPLE,
+        .n_intervals = N_INTERVALS,
     };
     struct ffmpeg_data down_args = {
         .title = yt_title,
-        .buf = yt_source,
-        .total_len = length,
+        .buf = source,
+        .total_len = LEN_SOURCE,
         .len = 0,
-        .intervals = intervals,
-        .n_intervals = n_intervals,
+        .intervals = INTERV_SOURCE,
+        .n_intervals = N_INTERVALS,
     };
     if (pthread_create(&cap_th, NULL, &capture, (void *) &cap_args) < 0) {
         perror("audiosync: pthread_create for cap_th failed");
@@ -148,24 +163,26 @@ int audiosync_run(char *yt_title, long int *lag) {
     // The main loop iterates through all intervals until a valid result is
     // found.
     fprintf(stderr, "audiosync: starting interval loop\n");
-    for (size_t i = 0; i < n_intervals; ++i) {
+    for (size_t i = 0; i < N_INTERVALS; ++i) {
         // Waits for both threads to finish their interval.
         pthread_mutex_lock(&mutex);
-        while (cap_args.len < intervals[i] || down_args.len < intervals[i]
+        while (cap_args.len < INTERV_SAMPLE[i]
+               || down_args.len < INTERV_SOURCE[i]
                || global_status == ABORT_ST) {
             pthread_cond_wait(&interval_done, &mutex);
         }
         pthread_mutex_unlock(&mutex);
 
+        // Checking if audiosync_abort() was called.
         if (global_status == ABORT_ST) {
             goto finish;
         }
 
-        fprintf(stderr, "audiosync: Next interval (%ld): cap=%ld down=%ld\n",
+        fprintf(stderr, "audiosync: next interval (%ld): cap=%ld down=%ld\n",
                 i, cap_args.len, down_args.len);
 
         // Running the cross correlation algorithm and checking for errors.
-        if (cross_correlation(yt_source, cap_sample, intervals[i], lag,
+        if (cross_correlation(source, sample, INTERV_SAMPLE[i], lag,
                               &confidence) < 0) {
             continue;
         }
@@ -201,8 +218,8 @@ int audiosync_run(char *yt_title, long int *lag) {
     ret = 0;
 
 finish:
-    if (cap_sample) free(cap_sample);
-    if (yt_source) free(yt_source);
+    if (sample) free(sample);
+    if (source) fftw_free(source);
     // Resetting the global status.
     global_status = IDLE_ST;
     fprintf(stderr, "audiosync: finished run\n");
