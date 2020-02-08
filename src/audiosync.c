@@ -51,18 +51,18 @@ const size_t INTERV_SAMPLE[] = {
     30 * SAMPLE_RATE,  // 1,440,000 frames
 };
 const size_t N_INTERVALS = sizeof(INTERV_SAMPLE) / sizeof(INTERV_SAMPLE[0]);
-const size_t LEN_SAMPLE = INTERV_SAMPLE[N_INTERVALS-1];
+const size_t LEN_SAMPLE = 30 * SAMPLE_RATE;
 // The download intervals will always be twice as big as the capture ones,
 // and the size of n_intervals.
 const size_t INTERV_SOURCE[] = {
-    2 * INTERV_SAMPLE[0],
-    2 * INTERV_SAMPLE[1],
-    2 * INTERV_SAMPLE[2],
-    2 * INTERV_SAMPLE[3],
-    2 * INTERV_SAMPLE[4],
-    2 * INTERV_SAMPLE[5],
+    2 * 3 * SAMPLE_RATE, 
+    2 * 6 * SAMPLE_RATE, 
+    2 * 10 * SAMPLE_RATE,
+    2 * 15 * SAMPLE_RATE,
+    2 * 20 * SAMPLE_RATE,
+    2 * 30 * SAMPLE_RATE,
 };
-const size_t LEN_SOURCE = INTERV_SOURCE[N_INTERVALS-1];
+const size_t LEN_SOURCE = 2 * 30 * SAMPLE_RATE;
 
 
 // The module can be controlled externally with these basic functions. They
