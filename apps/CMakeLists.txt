@@ -1,7 +1,7 @@
 add_executable(
     main
     main.c
-    ${HEADER_LIST}
+    ${HEADERS}
 )
 
 target_compile_features(main PRIVATE c_std_99)
