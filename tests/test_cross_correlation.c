@@ -17,71 +17,71 @@ int main() {
     double coefficient;
 
     // Both arrays are the same: the displacement should be zero with a
-    // confidence of 1.
-    printf("Test 1\n");
+    // coefficient of 1.
+    printf(">> Test 1\n");
     double source1[] = { 1,2,3,4,5,0,0,0,0,0 };
     double sample1[] = { 1,2,3,4,5 };
     length = sizeof(sample1) / sizeof(*sample1);
     ret = cross_correlation(source1, sample1, length, &lag, &coefficient);
-    printf("Returned %d: lag=%ld confidence=%f\n", ret, lag, coefficient);
+    printf("Returned %d: lag=%ld coefficient=%f\n", ret, lag, coefficient);
     assert(ret == 0);
     assert(lag == 0);
     assert(coefficient == 1.0);
 
     // One array is filled with zeros, so an error should be returned.
-    printf("Test 2\n");
+    printf(">> Test 2\n");
     double source2[] = { 1,2,3,4,5,6,7,8,9,10,11,12,13,14 };
     double sample2[] = { 0,0,0,0,0,0,0 };
     length = sizeof(sample2) / sizeof(*sample2);
     ret = cross_correlation(source2, sample2, length, &lag, &coefficient);
-    printf("Returned %d: lag=%ld confidence=%f\n", ret, lag, coefficient);
+    printf("Returned %d: lag=%ld coefficient=%f\n", ret, lag, coefficient);
     assert(ret == -1);
 
     // Both arrays are linearly equal.
-    printf("Test 3\n");
+    printf(">> Test 3\n");
     double source3[] = { 0,0,0,1,2,3,4,5,6,7,8,9 };
     double sample3[] = { 1,2,3,4,5,6 };
     length = sizeof(sample3) / sizeof(*sample3);
     ret = cross_correlation(source3, sample3, length, &lag, &coefficient);
-    printf("Returned %d: lag=%ld confidence=%f\n", ret, lag, coefficient);
+    printf("Returned %d: lag=%ld coefficient=%f\n", ret, lag, coefficient);
     assert(ret == 0);
     assert(lag == 3);
     assert(coefficient > MIN_CONFIDENCE);
 
     // Similar to the test above, but the other way around.
-    printf("Test 4\n");
+    printf(">> Test 4\n");
     double source4[] = { 1,2,3,4,5,6,5,7,10,20,100,200 };
     double sample4[] = { 0,0,0,1,2,3 };
     length = sizeof(sample4) / sizeof(*sample4);
     ret = cross_correlation(source4, sample4, length, &lag, &coefficient);
-    printf("Returned %d: lag=%ld confidence=%f\n", ret, lag, coefficient);
+    printf("Returned %d: lag=%ld coefficient=%f\n", ret, lag, coefficient);
     assert(ret == 0);
     assert(lag == -3);
     assert(coefficient > MIN_CONFIDENCE);
 
     // Other simple tests
-    printf("Test 5\n");
+    printf(">> Test 5\n");
     double source5[] = { 1,2,3,4,0,0,0,4,3,2,1,0,0,0 };
     double sample5[] = { 0,0,0,1,2,3,4 };
     length = sizeof(sample5) / sizeof(*sample5);
     ret = cross_correlation(source5, sample5, length, &lag, &coefficient);
-    printf("Returned %d: lag=%ld confidence=%f\n", ret, lag, coefficient);
+    printf("Returned %d: lag=%ld coefficient=%f\n", ret, lag, coefficient);
     assert(ret == 0);
     assert(lag == -3);
     assert(coefficient > MIN_CONFIDENCE);
 
-    printf("Test 6\n");
+    printf(">> Test 6\n");
     double source6[] = { 0,0,0,0,0,1,2,3,4,5,6,7,8,9 };
     double sample6[] = { 1,2,3,4,0,0,0 };
     length = sizeof(sample6) / sizeof(*sample6);
     ret = cross_correlation(source6, sample6, length, &lag, &coefficient);
-    printf("Returned %d: lag=%ld confidence=%f\n", ret, lag, coefficient);
+    printf("Returned %d: lag=%ld coefficient=%f\n", ret, lag, coefficient);
     assert(ret == 0);
     assert(lag == 5);
     assert(coefficient > MIN_CONFIDENCE);
 
     // Using a sine wave with positive linear correlation (same function).
-    printf("Test 7\n");
+    printf(">> Test 7\n");
     length = 1000;
     double source7[length*2];
     double sample7[length];
@@ -90,13 +90,13 @@ int main() {
     for (size_t i = 0; i < length; ++i)
         sample7[i] = sin(i);
     ret = cross_correlation(source7, sample7, length, &lag, &coefficient);
-    printf("Returned %d: lag=%ld confidence=%f\n", ret, lag, coefficient);
+    printf("Returned %d: lag=%ld coefficient=%f\n", ret, lag, coefficient);
     assert(ret == 0);
     assert(lag == 0);
     assert(coefficient > MIN_CONFIDENCE);
 
     // Using a sine wave with negative linear correlation.
-    printf("Test 8\n");
+    printf(">> Test 8\n");
     double source8[length*2];
     double sample8[length];
     for (size_t i = 0; i < length*2; ++i)
@@ -104,7 +104,7 @@ int main() {
     for (size_t i = 0; i < length; ++i)
         sample8[i] = sin(i + 180);
     ret = cross_correlation(source8, sample8, length, &lag, &coefficient);
-    printf("Returned %d: lag=%ld confidence=%f\n", ret, lag, coefficient);
+    printf("Returned %d: lag=%ld coefficient=%f\n", ret, lag, coefficient);
     assert(ret == 0);
     assert(lag == 1);
     assert(coefficient < -MIN_CONFIDENCE);  // Leaving a margin for precision
