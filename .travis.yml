@@ -2,17 +2,23 @@ sudo: required
 language: c
 compiler: gcc
 os: linux
-
-before_script:
-    - sudo apt-get update
-    - sudo apt-get -y install libfftw3-dev ffmpeg gnuplot
+addons:
+  apt:
+    sources:
+    - sourceline: 'ppa:duggan/bats'
+    packages:
+    - libfftw3-dev
+    - ffmpeg
+    - gnuplot
 
 script:
+    # Compilation in the build/ directory
     - mkdir build
     - cd build
     - mkdir images
     - cmake .. -DCMAKE_BUILD_TYPE=Debug
-    - make
+    - make -s -j4
+    # Run the tests
     - make test
 
 notifications:

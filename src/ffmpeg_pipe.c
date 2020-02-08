@@ -64,7 +64,7 @@ int ffmpeg_pipe(struct ffmpeg_data *data, char *args[]) {
                 wait(NULL);
                 goto finish;
             case PAUSED_ST:
-                // Pausing the ffmpeg process with a SIGSTOP until the
+                // Suspending the ffmpeg process with a SIGSTOP until the
                 // global status is changed from PAUSED_ST.
                 fprintf(stderr, "audiosync: stopping ffmpeg\n");
                 kill(pid, SIGSTOP);

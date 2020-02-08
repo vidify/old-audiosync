@@ -22,10 +22,9 @@ struct fftw_data {
 
 
 // Concurrent implementation of the Fast Fourier Transform using FFTW.
-static void *fft(void *thread_arg) {
+static void *fft(void *arg) {
     // Getting the parameters passed to this thread
-    struct fftw_data *data;
-    data = (struct fftw_data *) thread_arg;
+    struct fftw_data *data = arg;
 
     // Initializing the plan: the only thread-safe call in FFTW is
     // fftw_execute, so the plan has to be created and destroyed with a lock.
@@ -48,62 +47,58 @@ static void *fft(void *thread_arg) {
 // Calculating the cross-correlation between two signals `a` and `b`:
 //     xcross = ifft(fft(a) * conj(fft(b)))
 //
-// Both datasets should have the same size. They shouldn't be zero-padded,
-// since this function will already do so to length 2N-1. This is needed to
-// calculate the circular cross-correlation rather than the regular
-// cross-correlation.
+// The source size must be twice the sample size. This is because the sample
+// will be zero-padded to length 2N-1, which is needed to calculate the
+// circular cross-correlation.
+//
+// FFTW won't overwrite the source if FFTW_ESTIMATE is used, so the source
+// should be initialized with fftw_alloc_real so that the data is aligned
+// and thus, the Fourier Transforms will be faster.
 //
 // Returns the lag in frames the sample has over the source, with a confidence
 // between -1 and 1.
 //
 // In case of error, the function returns -1.
-int cross_correlation(double *input_source, double *input_sample,
-                      const size_t input_length, long int *displacement,
+int cross_correlation(double *source, double *input_sample,
+                      const size_t sample_length, long int *displacement,
                       double *coefficient) {
-    double *source = NULL;
     double *sample = NULL;
     double *results = NULL;
     double complex *arr1 = NULL;
     double complex *arr2 = NULL;
-    const size_t length = input_length * 2;
+    const size_t length = sample_length * 2;
     int ret = -1;
 
-    // Zero padding the data, allocating it in a new array with the new size.
-    // fftw_alloc_* use fftw_malloc, which is an equivalent of running 
+    // Only the sample needs to be zero-padded, since the cross correlation
+    // will be circular, and only one of the inputs is shifted.
+    // FFTW doesn't overwrite the source when FFTW_ESTIMATE is used, so the
+    // sample doesn't have to be copied.
+    // Note: fftw_alloc_* uses fftw_malloc, which is an equivalent of running
     // malloc + memalign. This means that it may also return NULL in case of
     // error.
-    source = fftw_alloc_real(length);
-    if (source == NULL) {
-        perror("audiosync: source fftw_alloc_real failed");
-        goto finish;
-    }
-    memcpy(source, input_source, input_length * sizeof(*source));
-    memset(source + input_length, 0,
-           (length - input_length) * sizeof(*source));
     sample = fftw_alloc_real(length);
     if (sample == NULL) {
         perror("audiosync: sample fftw_alloc_real failed");
         goto finish;
     }
-    memcpy(sample, input_sample, input_length * sizeof(*sample));
-    memset(sample + input_length, 0,
-           (length - input_length) * sizeof(*sample));
+    memcpy(sample, input_sample, sample_length * sizeof(*sample));
+    memset(sample + sample_length, 0,
+           (length - sample_length) * sizeof(*sample));
 
 #ifdef DEBUG
     // Plotting the output with gnuplot
     fprintf(stderr, "audiosync: Saving initial plot to '%ld_original.png'\n",
-            input_length);
+            length);
     FILE *gnuplot = popen("gnuplot", "w");
     fprintf(gnuplot, "set term 'png'\n");
-    fprintf(gnuplot, "set output 'images/%ld_original.png'\n", input_length);
+    fprintf(gnuplot, "set output 'images/%ld_original.png'\n", length);
     fprintf(gnuplot, "plot '-' with lines title 'sample', '-' with lines"
             " title 'source'\n");
-    for (size_t i = 0; i < input_length; ++i)
-        fprintf(gnuplot, "%f\n", sample[i]);
-    fprintf(gnuplot, "e\n");
-    // The second audio file starts at samplesDelay
-    for (size_t i = 0; i < input_length; ++i)
+    for (size_t i = 0; i < length; ++i)
         fprintf(gnuplot, "%f\n", source[i]);
+    fprintf(gnuplot, "e\n");
+    for (size_t i = 0; i < length; ++i)
+        fprintf(gnuplot, "%f\n", sample[i]);
     fprintf(gnuplot, "e\n");
     fflush(gnuplot);
     pclose(gnuplot);
@@ -189,11 +184,11 @@ int cross_correlation(double *input_source, double *input_sample,
     // displacement that has to be performed is to the left, and otherwise
     // to the right.
     size_t shift_start = 0;
-    size_t shift_end = input_length;
-    if (lag >= (long int) input_length) {
+    size_t shift_end = sample_length;
+    if (lag >= (long int) sample_length) {
         // Performing the displacement to the left
-        lag = (long int) input_length - (lag % (long int) input_length);
-        shift_end = (input_length - lag);
+        lag = (long int) sample_length - (lag % (long int) sample_length);
+        shift_end = (sample_length - lag);
         memmove(sample, sample + lag, sizeof(double) * shift_end);
         *displacement = -lag;
     } else {
@@ -239,18 +234,17 @@ int cross_correlation(double *input_source, double *input_sample,
             (clock() - start) / (double) CLOCKS_PER_SEC);
 
     // Plotting the output with gnuplot
-    fprintf(stderr, "audiosync: Saving plot to '%ld.png'\n", input_length);
+    fprintf(stderr, "audiosync: Saving plot to '%ld.png'\n", length);
     gnuplot = popen("gnuplot", "w");
     fprintf(gnuplot, "set term 'png'\n");
-    fprintf(gnuplot, "set output 'images/%ld.png'\n", input_length);
+    fprintf(gnuplot, "set output 'images/%ld.png'\n", length);
     fprintf(gnuplot, "plot '-' with lines title 'sample', '-' with lines"
             " title 'source'\n");
     for (size_t i = shift_start; i < shift_end; ++i)
-        fprintf(gnuplot, "%f\n", sample[i]);
-    fprintf(gnuplot, "e\n");
-    // The second audio file starts at samplesDelay
-    for (size_t i = shift_start; i < shift_end; ++i)
         fprintf(gnuplot, "%f\n", source[i]);
+    fprintf(gnuplot, "e\n");
+    for (size_t i = shift_start; i < shift_end; ++i)
+        fprintf(gnuplot, "%f\n", sample[i]);
     fprintf(gnuplot, "e\n");
     fflush(gnuplot);
     pclose(gnuplot);
@@ -259,7 +253,6 @@ int cross_correlation(double *input_source, double *input_sample,
     ret = 0;
 
 finish:
-    if (source) fftw_free(source);
     if (sample) fftw_free(sample);
     if (arr1) fftw_free(arr1);
     if (arr2) fftw_free(arr2);
