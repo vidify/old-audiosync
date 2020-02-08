@@ -166,9 +166,9 @@ int audiosync_run(char *yt_title, long int *lag) {
     for (size_t i = 0; i < N_INTERVALS; ++i) {
         // Waits for both threads to finish their interval.
         pthread_mutex_lock(&mutex);
-        while (cap_args.len < INTERV_SAMPLE[i]
-               || down_args.len < INTERV_SOURCE[i]
-               || global_status == ABORT_ST) {
+        while ((cap_args.len < INTERV_SAMPLE[i]
+               || down_args.len < INTERV_SOURCE[i])
+               && global_status != ABORT_ST) {
             pthread_cond_wait(&interval_done, &mutex);
         }
         pthread_mutex_unlock(&mutex);
