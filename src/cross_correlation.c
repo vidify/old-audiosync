@@ -44,6 +44,38 @@ static void *fft(void *arg) {
 }
 
 
+// Calculating the Pearson Correlation Coefficient between `source` and
+// `sample` starting at `start` until `end` applying the formula:
+// https://en.wikipedia.org/wiki/Pearson_correlation_coefficient#For_a_sample
+double pearson_coefficient(double *source, double *sample, size_t start,
+                           size_t end) {
+    // 1. The average for both datasets.
+    double sum1 = 0.0;
+    double sum2 = 0.0;
+    for (size_t i = start; i < end; ++i) {
+         sum1 += source[i];
+         sum2 += sample[i];
+    }
+    double avg1 = sum1 / (end - start);
+    double avg2 = sum2 / (end - start);
+
+    // 2. Applying the definition formula.
+    double diff1, diff2;
+    double diffprod = 0.0;
+    double diff1_squared = 0.0;
+    double diff2_squared = 0.0;
+    for (size_t i = start; i < end; ++i) {
+        diff1 = source[i] - avg1;
+        diff2 = sample[i] - avg2;
+        diffprod += diff1 * diff2;
+        diff1_squared += diff1 * diff1;
+        diff2_squared += diff2 * diff2;
+    }
+
+    return diffprod / sqrt(diff1_squared * diff2_squared);
+}
+
+
 // Calculating the cross-correlation between two signals `a` and `b`:
 //     xcross = ifft(fft(a) * conj(fft(b)))
 //
@@ -198,32 +230,11 @@ int cross_correlation(double *source, double *input_sample,
         *displacement = lag;
     }
 
-    // Calculating the Pearson Correlation Coefficient applying the formula:
-    // https://en.wikipedia.org/wiki/Pearson_correlation_coefficient#For_a_sample
-    // 1. The average for both datasets.
-    double sum1 = 0.0;
-    double sum2 = 0.0;
-    for (size_t i = shift_start; i < shift_end; ++i) {
-         sum1 += source[i];
-         sum2 += sample[i];
-    }
-    double avg1 = sum1 / (shift_end - shift_start);
-    double avg2 = sum2 / (shift_end - shift_start);
-    // 2. Applying the definition formula.
-    double diff1, diff2;
-    double diffprod = 0.0;
-    double diff1_squared = 0.0;
-    double diff2_squared = 0.0;
-    for (size_t i = shift_start; i < shift_end; ++i) {
-        diff1 = source[i] - avg1;
-        diff2 = sample[i] - avg2;
-        diffprod += diff1 * diff2;
-        diff1_squared += diff1 * diff1;
-        diff2_squared += diff2 * diff2;
-    }
-    *coefficient = diffprod / sqrt(diff1_squared * diff2_squared);
+    // Calculating the Pearson Correlation Coefficient to obtain the
+    // accuracy of the results.
+    *coefficient = pearson_coefficient(source, sample, shift_start, shift_end);
 
-    // Checking that the resulting coefficient isn't NaN
+    // Checking that the resulting coefficient isn't NaN.
     if (*coefficient != *coefficient) goto finish;
 
     fprintf(stderr, "audiosync: %ld frames of delay with a confidence of %f\n",
