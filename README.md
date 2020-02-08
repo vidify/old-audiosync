@@ -18,24 +18,25 @@ In the future, it will be available on the AUR and more sources.
 
 
 ## Usage
-The only exported method is `get_lag(title: str)`, which returns the displacement between the two audio sources (positive or negative). `title` is the full YouTube link that the recorded audio will be compared to.
+
+The main function is `int audiosync_run(char* title, long *lag)`, which returns the displacement between the two audio sources (positive or negative). `title` is the full YouTube link that the recorded audio will be compared to. After this function has been called, its progress can be monitored and controlled with the following self-explainatory functions: `global_status_t audiosync_status()`, `void audiosync_resume()`, `void audiosync_pause()` and `void audiosync_abort()`. This interface is also available from the Python bindings, which have the same names, but inside a module (for example `audiosync.run()`).
 
 There are 2 apps to try:
 
-* `apps/main.c`: used to debug more easily. You can run it with:
+* `apps/main.c`: used to debug more easily from the native language. You can run it with:
 
 ```shell
 mkdir build
 cd build
 mkdir images
 cmake ..
-make
+make -j4
 ./apps/main "SONG NAME"
 ```
 
 Use `-DCMAKE_BUILD_TYPE=Debug` to enable debugging and save plots into the images directory. You'll need `gnuplot` installed for that, and a directory named `images`.
 
-* `apps/main.py`: the actual module usage. You can simply use `python main.py "SONG NAME"`
+* `apps/main.py`: the actual module usage in Python. You can simply use `python main.py "SONG NAME"`
 
 
 ## How it works
