@@ -69,3 +69,17 @@ Another important part of the module is the concurrency. Both audio tracks have 
 * The audio capture thread: records the desktop audio with ffmpeg.
 
 To keep this module somewhat real-time, the algorithm is run in intervals. After one of the threads has successfully obtained the data in the current interval, it sends a signal to the main thread, which is waiting until both threads are done with it. When both signals are recevied, the algorithm is run. If the results obtained are good enough (they have a confidence higher than `MIN_CONFIDENCE`), the main thread sets a variable that indicates the rest of the threads to stop, so that it can return the obtained value. Otherwise, it continues to the next interval.
+
+## Developing
+
+You can run the project's tests with:
+
+```
+mkdir build
+cd build
+cmake .. -DBUILD_TESTING=YES
+make
+make test
+```
+
+Feel free to open up an issue or PR in case you have problems with the module or want to contribute. Do take in mind that this project's current status is still very early, so it's not too stable.

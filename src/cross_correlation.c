@@ -47,6 +47,8 @@ static void *fft(void *arg) {
 // Calculating the Pearson Correlation Coefficient between `source` and
 // `sample` starting at `start` until `end` applying the formula:
 // https://en.wikipedia.org/wiki/Pearson_correlation_coefficient#For_a_sample
+// This function will only work correctly if end - start != 0, and the arrays
+// passed by parameter are correctly allocated to the indicated size.
 double pearson_coefficient(double *source, double *sample, size_t start,
                            size_t end) {
     // 1. The average for both datasets.

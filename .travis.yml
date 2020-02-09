@@ -16,7 +16,7 @@ script:
     - mkdir build
     - cd build
     - mkdir images
-    - cmake .. -DCMAKE_BUILD_TYPE=Debug
+    - cmake .. -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTING=YES
     - make -s -j4
     # Run the tests
     - make test
