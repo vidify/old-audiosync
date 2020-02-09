@@ -12,14 +12,15 @@
 #include <vidify_audiosync/audiosync.h>
 
 
+// The cross-correlation mutex.
+static pthread_mutex_t cc_mutex = PTHREAD_MUTEX_INITIALIZER;
+
 // Data structure used to pass parameters to concurrent FFTW-related functions.
 struct fftw_data {
     double *real;
     double complex *cpx;
     size_t length;
-    pthread_mutex_t *mutex;
 };
-
 
 // Concurrent implementation of the Fast Fourier Transform using FFTW.
 static void *fft(void *arg) {
@@ -28,18 +29,18 @@ static void *fft(void *arg) {
 
     // Initializing the plan: the only thread-safe call in FFTW is
     // fftw_execute, so the plan has to be created and destroyed with a lock.
-    pthread_mutex_lock(data->mutex);
+    pthread_mutex_lock(&cc_mutex);
     fftw_plan p = fftw_plan_dft_r2c_1d(data->length, data->real, data->cpx,
                                        FFTW_ESTIMATE);
-    pthread_mutex_unlock(data->mutex);
+    pthread_mutex_unlock(&cc_mutex);
 
     // Actually executing the FFT
     fftw_execute(p);
 
     // Destroying the plan and terminating the thread
-    pthread_mutex_lock(data->mutex);
+    pthread_mutex_lock(&cc_mutex);
     fftw_destroy_plan(p);
-    pthread_mutex_unlock(data->mutex);
+    pthread_mutex_unlock(&cc_mutex);
     pthread_exit(NULL);
 }
 
@@ -161,19 +162,16 @@ int cross_correlation(double *source, double *input_sample,
     }
 
     // Initializing the threads and running them
-    pthread_mutex_t fft_mutex = PTHREAD_MUTEX_INITIALIZER;
     pthread_t fft1_th, fft2_th;
     struct fftw_data fft1_data = {
         .real = source,
         .cpx = arr1,
         .length = length,
-        .mutex = &fft_mutex
     };
     struct fftw_data fft2_data = {
         .real = sample,
         .cpx = arr2,
         .length = length,
-        .mutex = &fft_mutex
     };
     if (pthread_create(&fft1_th, NULL, &fft, (void *) &fft1_data) < 0) {
         perror("audiosync: pthread_create for fft1_th failed");
