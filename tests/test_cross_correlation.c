@@ -71,8 +71,8 @@ int main() {
     assert(coef > MIN_CONFIDENCE);
 
     printf(">> Test 6\n");
-    double source6[] = { 0,0,0,0,0,1,2,3,4,1,2,3,4,0 };
-    double sample6[] = { 1,2,3,4,0,0,0 };
+    double source6[] = { 0,0,0,0,0,1,2,3,4,-1,-3,-5,0,0 };
+    double sample6[] = { 1,2,3,4,-1,-3,-5 };
     length = sizeof(sample6) / sizeof(*sample6);
     ret = cross_correlation(source6, sample6, length, &lag, &coef);
     printf("Returned %d: lag=%ld coef=%f\n", ret, lag, coef);

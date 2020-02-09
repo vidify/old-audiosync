@@ -4,10 +4,12 @@
 #include <stdlib.h>
 
 // Calculating the Pearson Correlation Coefficient between `source` and
-// `sample` starting at `start` until `end` applying the formula:
+// `sample` between two pointers, applying the formula:
 // https://en.wikipedia.org/wiki/Pearson_correlation_coefficient#For_a_sample
-double pearson_coefficient(double *source, double *sample, size_t start,
-                           size_t end);
+// This function will only work correctly if end - start != 0, and the arrays
+// passed by parameter are correctly allocated to the indicated size.
+double pearson_coefficient(double *source_start, double *source_end,
+                           double *sample_start, double *sample_end);
 
 // Calculating the cross-correlation between two signals `a` and `b`:
 //     xcross = ifft(fft(a) * conj(fft(b)))
