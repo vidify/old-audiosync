@@ -66,7 +66,7 @@ int ffmpeg_pipe(struct ffmpeg_data *data, char *args[]) {
         if (read_bytes == 0 || data->len + BUFSIZE >= data->total_len) {
             // End of file or the buffer won't be big enough for the next
             // read.
-            fprintf(stderr, "audiosync: finished ffmpeg loop");
+            fprintf(stderr, "audiosync: finished ffmpeg loop\n");
             break;
         } else if (read_bytes < 0) {
             // Error
