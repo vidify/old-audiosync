@@ -36,8 +36,8 @@ struct ffmpeg_data {
 typedef enum {
     IDLE_ST,     // Audiosync is doing nothing, it's not running
     RUNNING_ST,  // Audiosync is running
-    PAUSED_ST,   // Indicate audiosync to pause the ffmpeg recording
-    ABORT_ST     // Indicate audiosync to stop its algorithm completely
+    PAUSED_ST,   // Audiosync is paused (recording and downloading too)
+    ABORT_ST     // Audiosync is stopping its algorithm completely
 } global_status_t;
 extern volatile global_status_t global_status;
 
@@ -50,7 +50,6 @@ extern pthread_cond_t interval_done;
 // Condition used to continue the ffmpeg execution after it has been paused
 // with audiosync_pause().
 extern pthread_cond_t ffmpeg_continue;
-
 
 extern global_status_t audiosync_status();
 extern void audiosync_abort();
