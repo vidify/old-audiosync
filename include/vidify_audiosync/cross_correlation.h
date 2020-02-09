@@ -3,6 +3,11 @@
 
 #include <stdlib.h>
 
+// Calculating the Pearson Correlation Coefficient between `source` and
+// `sample` starting at `start` until `end` applying the formula:
+// https://en.wikipedia.org/wiki/Pearson_correlation_coefficient#For_a_sample
+double pearson_coefficient(double *source, double *sample, size_t start,
+                           size_t end);
 
 // Calculating the cross-correlation between two signals `a` and `b`:
 //     xcross = ifft(fft(a) * conj(fft(b)))

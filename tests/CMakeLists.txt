@@ -1,14 +1,18 @@
-# The tests binary includes all the different test files
-add_executable(
-    tests
-    test_cross_correlation.c
+# The tests binaries
+set(
+    TEST_DEPS
+    vidify_audiosync
+    fftw3
+    m
+    pthread
     ${HEADERS}
 )
 
-# Minimum C99 required. Also listing the used libraries.
-target_compile_features(tests PRIVATE c_std_99)
-target_link_libraries(tests PRIVATE vidify_audiosync fftw3 m pthread)
+add_executable(test_cross_correlation test_cross_correlation.c)
+target_link_libraries(test_cross_correlation PRIVATE ${TEST_DEPS})
+add_executable(test_pearson_coefficient test_pearson_coefficient.c)
+target_link_libraries(test_pearson_coefficient PRIVATE ${TEST_DEPS})
 
-# Adding the tests one by one for the make command:
-#    make test
-add_test(NAME test_cross_correlation COMMAND tests)
+# Adding the tests one by one for the `make test` command.
+add_test(cross_correlation test_cross_correlation)
+add_test(pearson_coefficient test_pearson_coefficient)
