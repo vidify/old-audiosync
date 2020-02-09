@@ -24,7 +24,7 @@ int main() {
     lag = -2;
     ret = pearson_coefficient(source1, source1 + lag + len,
                               sample1 - lag, sample1 + len);
-    printf("Returned %f\n", ret);
+    printf(">> Returned %f\n", ret);
     assert(ret == 1.0);
 
     // Test 2 simulates a displacement to the right.
@@ -35,7 +35,7 @@ int main() {
     lag = 4;
     ret = pearson_coefficient(source2 + lag, source2 + lag + len,
                               sample2, sample2 + len);
-    printf("Returned %f\n", ret);
+    printf(">> Returned %f\n", ret);
     assert(ret == 1.0);
 
     // Testing negative linear correlation
@@ -44,7 +44,7 @@ int main() {
     double sample3[] = { 4,3,2,1 };
     len = sizeof(source3) / sizeof(*source3);
     ret = pearson_coefficient(source3, source3 + len, sample3, sample3 + len);
-    printf("Returned %f between %ld and %ld\n", ret, 0L, len);
+    printf(">> Returned %f between %ld and %ld\n", ret, 0L, len);
     assert(ret == -1.0);
 
     // Testing that on error, NaN is returned (in this case, an array filled
@@ -54,7 +54,7 @@ int main() {
     double sample4[] = { 0,0,0,0 };
     len = sizeof(source4) / sizeof(*source4);
     ret = pearson_coefficient(source4, source4 + len, sample4, sample4 + len);
-    printf("Returned %f between %ld and %ld\n", ret, 0L, len);
+    printf(">> Returned %f between %ld and %ld\n", ret, 0L, len);
     assert(ret != ret);
 
     return 0;

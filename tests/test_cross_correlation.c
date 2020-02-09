@@ -23,7 +23,7 @@ int main() {
     double sample1[] = { 1.1,2.2,3.3,4.4,5.5 };
     length = sizeof(sample1) / sizeof(*sample1);
     ret = cross_correlation(source1, sample1, length, &lag, &coef);
-    printf("Returned %d: lag=%ld coef=%f\n", ret, lag, coef);
+    printf(">> Returned %d: lag=%ld coef=%f\n", ret, lag, coef);
     assert(ret == 0);
     assert(lag == 0);
     assert(coef == 1.0);
@@ -34,7 +34,7 @@ int main() {
     double sample2[] = { 0,0,0,0,0,0,0 };
     length = sizeof(sample2) / sizeof(*sample2);
     ret = cross_correlation(source2, sample2, length, &lag, &coef);
-    printf("Returned %d: lag=%ld coef=%f\n", ret, lag, coef);
+    printf(">> Returned %d: lag=%ld coef=%f\n", ret, lag, coef);
     assert(ret == -1);
 
     // Both arrays are linearly equal.
@@ -43,7 +43,7 @@ int main() {
     double sample3[] = { 1,2,3,4,5,6 };
     length = sizeof(sample3) / sizeof(*sample3);
     ret = cross_correlation(source3, sample3, length, &lag, &coef);
-    printf("Returned %d: lag=%ld coef=%f\n", ret, lag, coef);
+    printf(">> Returned %d: lag=%ld coef=%f\n", ret, lag, coef);
     assert(ret == 0);
     assert(lag == 3);
     assert(coef > MIN_CONFIDENCE);
@@ -54,7 +54,7 @@ int main() {
     double sample4[] = { 0,0,0,1,2,3 };
     length = sizeof(sample4) / sizeof(*sample4);
     ret = cross_correlation(source4, sample4, length, &lag, &coef);
-    printf("Returned %d: lag=%ld coef=%f\n", ret, lag, coef);
+    printf(">> Returned %d: lag=%ld coef=%f\n", ret, lag, coef);
     assert(ret == 0);
     assert(lag == -3);
     assert(coef > MIN_CONFIDENCE);
@@ -65,7 +65,7 @@ int main() {
     double sample5[] = { 0,0,0,1,2,3,4 };
     length = sizeof(sample5) / sizeof(*sample5);
     ret = cross_correlation(source5, sample5, length, &lag, &coef);
-    printf("Returned %d: lag=%ld coef=%f\n", ret, lag, coef);
+    printf(">> Returned %d: lag=%ld coef=%f\n", ret, lag, coef);
     assert(ret == 0);
     assert(lag == -3);
     assert(coef > MIN_CONFIDENCE);
@@ -75,7 +75,7 @@ int main() {
     double sample6[] = { 1,2,3,4,-1,-3,-5 };
     length = sizeof(sample6) / sizeof(*sample6);
     ret = cross_correlation(source6, sample6, length, &lag, &coef);
-    printf("Returned %d: lag=%ld coef=%f\n", ret, lag, coef);
+    printf(">> Returned %d: lag=%ld coef=%f\n", ret, lag, coef);
     assert(ret == 0);
     assert(lag == 5);
     assert(coef > MIN_CONFIDENCE);
@@ -90,7 +90,7 @@ int main() {
     for (size_t i = 0; i < length; ++i)
         sample7[i] = sin(i);
     ret = cross_correlation(source7, sample7, length, &lag, &coef);
-    printf("Returned %d: lag=%ld coef=%f\n", ret, lag, coef);
+    printf(">> Returned %d: lag=%ld coef=%f\n", ret, lag, coef);
     assert(ret == 0);
     assert(lag == 0);
     assert(coef > MIN_CONFIDENCE);
@@ -107,7 +107,7 @@ int main() {
     for (size_t i = 0; i < length; ++i)
         sample8[i] = sin(i);
     ret = cross_correlation(source8, sample8, length, &lag, &coef);
-    printf("Returned %d: lag=%ld coef=%f\n", ret, lag, coef);
+    printf(">> Returned %d: lag=%ld coef=%f\n", ret, lag, coef);
     assert(ret == 0);
     assert(lag == -1);
     assert(coef < -MIN_CONFIDENCE);  // Leaving a margin for precision
