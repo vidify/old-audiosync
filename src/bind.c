@@ -6,6 +6,7 @@
 PyObject *audiosyncmodule_pause(PyObject *self, PyObject *args);
 PyObject *audiosyncmodule_resume(PyObject *self, PyObject *args);
 PyObject *audiosyncmodule_abort(PyObject *self, PyObject *args);
+PyObject *audiosyncmodule_status(PyObject *self, PyObject *args);
 PyObject *audiosyncmodule_run(PyObject *self, PyObject *args);
 
 
@@ -34,6 +35,12 @@ static PyMethodDef VidifyAudiosyncMethods[] = {
         audiosyncmodule_abort,
         METH_NOARGS,
         "Abort the audiosync job."
+    },
+    {
+        "status",
+        audiosyncmodule_status,
+        METH_NOARGS,
+        "Returns the current job's status as a string"
     },
     {NULL, NULL, 0, NULL}
 };
@@ -94,4 +101,16 @@ PyObject *audiosyncmodule_abort(PyObject *self, PyObject *args) {
     Py_END_ALLOW_THREADS
 
     Py_RETURN_NONE;
+}
+
+PyObject *audiosyncmodule_status(PyObject *self, PyObject *args) {
+    global_status_t status;
+    char *str;
+
+    Py_BEGIN_ALLOW_THREADS
+    status = audiosync_status();
+    str = status_to_string(status);
+    Py_END_ALLOW_THREADS
+
+    return Py_BuildValue("s", str);
 }

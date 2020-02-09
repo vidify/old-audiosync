@@ -101,6 +101,22 @@ global_status_t audiosync_status() {
     return ret;
 }
 
+// Converting a status enum value to a string.
+char *status_to_string(global_status_t status) {
+    switch (status) {
+    case IDLE_ST:
+        return "idle";
+    case RUNNING_ST:
+        return "running";
+    case PAUSED_ST:
+        return "paused";
+    case ABORT_ST:
+        return "aborting";
+    default:
+        return "unknown";
+    }
+}
+
 
 // This function starts the algorithm. Only one audiosync thread can be
 // running at once.
