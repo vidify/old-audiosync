@@ -235,18 +235,25 @@ int cross_correlation(double *source, double *input_sample,
     //
     // Finally, the Pearson Correlation Coefficient is calculated with the
     // resulting segment of data.
+    double *source_start, *source_end, *sample_start, *sample_end;
     if (*lag >= (long) sample_len) {
         // Displacing the sample to the left (lag is negative), final size
         // is sample_len - lag.
         *lag = (*lag % (long) sample_len) - (long) sample_len;
-        *coefficient = pearson_coefficient(source, source + *lag + sample_len,
-                                           sample - *lag, sample + sample_len);
+        source_start = source;
+        source_end = source + *lag + sample_len;
+        sample_start = sample - *lag;
+        sample_end = sample + sample_len;
     } else {
         // Displacing the sample to the right (lag is positive), final size
         // is sample_len.
-        *coefficient = pearson_coefficient(source + *lag, source + *lag + sample_len,
-                                           sample, sample + sample_len);
+        source_start = source + *lag;
+        source_end = source + *lag + sample_len;
+        sample_start = sample;
+        sample_end = sample + sample_len;
     }
+    *coefficient = pearson_coefficient(source_start, source_end, sample_start,
+                                       sample_end);
 
     // Checking that the resulting coefficient isn't NaN.
     if (*coefficient != *coefficient) goto finish;
@@ -265,11 +272,11 @@ int cross_correlation(double *source, double *input_sample,
     fprintf(gnuplot, "set output 'images/%ld.png'\n", source_len);
     fprintf(gnuplot, "plot '-' with lines title 'sample', '-' with lines"
             " title 'source'\n");
-    for (size_t i = 0; i < sample_len; i++)
-        fprintf(gnuplot, "%f\n", source[i]);
+    for (double *i = source_start; i < source_end; i++)
+        fprintf(gnuplot, "%f\n", *i);
     fprintf(gnuplot, "e\n");
-    // for (double *i = sample_start; i < sample_end; i++)
-        // fprintf(gnuplot, "%f\n", *i);
+    for (double *i = sample_start; i < sample_end; i++)
+        fprintf(gnuplot, "%f\n", *i);
     fprintf(gnuplot, "e\n");
     fflush(gnuplot);
     pclose(gnuplot);
