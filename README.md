@@ -1,7 +1,7 @@
 # Vidify Audiosync
 [![Build Status](https://travis-ci.com/vidify/audiosync.svg?branch=master)](https://travis-ci.com/vidify/audiosync)
 
-This module is an extension for [vidify](https://github.com/marioortizmanero/spotify-music-videos). Its purpose is to synchronize the audio from 2 different sources: YouTube, and the currently playing audio on your computer. It's currently under development and only works on Linux (and macOS, but it's untested). In the future, Windows support will be added. Also, it's a separate module because it's an optional feature.
+This module is an extension for [vidify](https://github.com/vidify/vidify). Its purpose is to synchronize the audio from 2 different sources: YouTube, and the currently playing audio on your computer. It's currently under development and only works on Linux (and macOS, but it's untested). In the future, Windows support will be added. Also, it's a separate module because it's an optional feature.
 
 
 ## Installation
