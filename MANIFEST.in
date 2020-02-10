@@ -1,0 +1,3 @@
+include include/vidify_audiosync/*
+include include/vidify_audiosync/capture/*
+include include/vidify_audiosync/download/*

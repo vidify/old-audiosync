@@ -11,7 +11,7 @@ audiosync = Extension(
     'vidify_audiosync',
     define_macros = defines,
     extra_compile_args = args,
-    include_dirs = ['/usr/local/include', 'include'],
+    include_dirs = ['include'],
     libraries = ['m', 'pthread', 'fftw3'],
     library_dirs = ['/usr/local/lib'],
     sources = ['src/bind.c', 'src/audiosync.c', 'src/cross_correlation.c',
@@ -21,7 +21,7 @@ audiosync = Extension(
 
 setup(
     name='vidify-audiosync',
-    version='0.1',
+    version='0.1.4',
     description='Vidify extension to synchronize a YouTube video with the'
     ' audio playing on your device.',
     long_description=open('README.md', 'r').read(),
