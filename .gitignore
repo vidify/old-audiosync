@@ -33,15 +33,7 @@
 main
 
 # Other
-lib/
-lib64
-pyvenv.cfg
-bin/
-dist/
+.venv/
 build/
 *.egg-info/
-etc/
-share/
-tests/tests
-examples/example
 compile_commands.json
