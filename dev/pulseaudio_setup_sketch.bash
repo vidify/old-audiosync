@@ -17,7 +17,9 @@ fi
 # And setup the loopback from the monitor back to default sink
 if ! pacmd list-modules | grep loopback -A 1 | grep "$SINKNAME" -q ; then
 	echo -n "Loading loopback module as "
-	pactl load-module module-loopback source="$SINKNAME.monitor"  # latency_msec=1 rate=44100
+    # latency_msec is needed so that the virtual sink's audio is synchronized
+    # with the desktop audio.
+	pactl load-module module-loopback source="$SINKNAME.monitor" latency_msec=1  # rate=44100
 else
 	echo "Loopback module already loaded"
 fi
