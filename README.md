@@ -85,3 +85,7 @@ make test
 ```
 
 Feel free to open up an issue or PR in case you have problems with the module or want to contribute. Do take in mind that this project's current status is still very early, so it's not too stable.
+
+Documentation links:
+
+* PulseAudio: [reference](https://freedesktop.org/software/pulseaudio/doxygen/index.html), [docs](https://www.freedesktop.org/wiki/Software/PulseAudio/Documentation/User/), [guide](https://gavv.github.io/articles/pulseaudio-under-the-hood/#portability).

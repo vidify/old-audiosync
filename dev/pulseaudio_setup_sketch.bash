@@ -8,18 +8,18 @@ SINKNAME="audiosync"
 
 # Setup the virtual sink
 if ! pacmd list-modules | grep null-sink -A 1 | grep "$SINKNAME" -q ; then
-	echo -n "Loading virtual sink module as "
-	pactl load-module module-null-sink sink_name="$SINKNAME" sink_properties=device.description=$SINKNAME  # rate=44100
+    echo -n "Loading virtual sink module as "
+    pactl load-module module-null-sink sink_name="$SINKNAME" sink_properties=device.description=$SINKNAME  # rate=44100
 else
-	echo "Virtual sink module already loaded"
+    echo "Virtual sink module already loaded"
 fi
 
 # And setup the loopback from the monitor back to default sink
 if ! pacmd list-modules | grep loopback -A 1 | grep "$SINKNAME" -q ; then
-	echo -n "Loading loopback module as "
+    echo -n "Loading loopback module as "
     # latency_msec is needed so that the virtual sink's audio is synchronized
     # with the desktop audio.
-	pactl load-module module-loopback source="$SINKNAME.monitor" latency_msec=1  # rate=44100
+    pactl load-module module-loopback source="$SINKNAME.monitor" latency_msec=1  # rate=44100
 else
-	echo "Loopback module already loaded"
+    echo "Loopback module already loaded"
 fi
