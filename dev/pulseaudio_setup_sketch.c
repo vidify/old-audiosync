@@ -60,11 +60,7 @@ static void pa_state_cb(pa_context *c, void *userdata) {
 static void load_module_cb(pa_context *c, uint32_t index, void *userdata) {
     int *ret = userdata;
 
-    if (index == PA_INVALID_INDEX) {
-        *ret = -1;
-    } else {
-        *ret = 0;
-    }
+    *ret = (index == PA_INVALID_INDEX) ? -1 : 0;
 }
 
 // Simple callback function that returns if the operation was successful.
@@ -164,7 +160,8 @@ int main(int argc, char *argv[]) {
             // loading a new sink for audiosync.
             pa_op = pa_context_load_module(
                 pa_ctx, "module-null-sink", "sink_name=" SINK_NAME
-                " sink_properties=device.description=" SINK_NAME,
+                " sink_properties=device.description=" SINK_NAME
+                " format=float32le",
                 load_module_cb, &ret);
 
             state++;
@@ -242,8 +239,8 @@ int main(int argc, char *argv[]) {
             return 1;
         }
 
-        // Performing the next iteration. The second argument will block until
-        // something is ready to be done.
+        // Performing the next iteration. The second argument indicates to
+        // block until something is ready to be done.
         pa_mainloop_iterate(pa_ml, 1, NULL);
     }
 }
