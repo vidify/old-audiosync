@@ -4,6 +4,7 @@
 # See https://github.com/vidify/audiosync/issues/22 for more.
 
 # SETUP PULSE
+STREAMS="spotify"
 SINKNAME="audiosync"
 
 # Setup the virtual sink
@@ -23,3 +24,8 @@ if ! pacmd list-modules | grep loopback -A 1 | grep "$SINKNAME" -q ; then
 else
     echo "Loopback module already loaded"
 fi
+
+# Move spotify streams to output to new virtual device 
+streams_to_move=$(pacmd list-sink-inputs | grep -B 25 "$STREAMS" | grep "index:")
+echo "Moving stream ${streams_to_move:11} to $SINKNAME"
+pacmd move-sink-input "${streams_to_move:11}" "$SINKNAME"
