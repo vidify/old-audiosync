@@ -5,11 +5,13 @@ os: linux
 addons:
   apt:
     sources:
-    - sourceline: 'ppa:duggan/bats'
+        - sourceline: 'ppa:duggan/bats'
     packages:
-    - libfftw3-dev
-    - ffmpeg
-    - gnuplot
+        - libpulse-dev
+        - pulseaudio
+        - libfftw3-dev
+        - ffmpeg
+        - gnuplot
 
 script:
     # Compilation in the build/ directory

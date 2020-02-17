@@ -9,6 +9,7 @@ This module is an extension for [vidify](https://github.com/vidify/vidify). Its 
 ## Installation
 The requirements are:
 
+* [pulseaudio](https://www.freedesktop.org/wiki/Software/PulseAudio/) and libpulse.
 * [ffmpeg](https://www.ffmpeg.org/) (must be available in the user's path): a software suite to both download the song and record the system's audio. This dependency might be dropped in the future for `libav`, which is ffmpeg's main library and provides more control. Currently, the audio is obtained from a ffmpeg's pipe.
 * [FFTW](http://www.fftw.org/): the fastest library to compute the discrete Fourier Transform (DFT), which is the most resource-heavy calculation made in this module.
 
