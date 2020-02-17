@@ -48,7 +48,7 @@ extern pthread_mutex_t mutex;
 extern pthread_cond_t interval_done;
 // Condition used to continue the ffmpeg execution after it has been paused
 // with audiosync_pause().
-extern pthread_cond_t ffmpeg_continue;
+extern pthread_cond_t read_continue;
 
 extern global_status_t audiosync_status();
 extern char *status_to_string(global_status_t status);

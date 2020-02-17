@@ -63,16 +63,18 @@ int ffmpeg_pipe(struct ffmpeg_data *data, char *args[]) {
         // Reading the data from ffmpeg in chunks of size `BUFSIZE`.
         read_bytes = read(wav_pipe[PIPE_RD], (data->buf + data->len),
                           BUFSIZE * sizeof(*(data->buf)));
-        if (read_bytes == 0 || data->len + BUFSIZE >= data->total_len) {
-            // End of file or the buffer won't be big enough for the next
-            // read.
-            fprintf(stderr, "audiosync: finished ffmpeg loop\n");
-            break;
-        } else if (read_bytes < 0) {
-            // Error
+
+        // Error when trying to read
+        if (read_bytes < 0) {
             perror("audiosync: read for wav_pipe failed");
             audiosync_abort();
             goto finish;
+        }
+
+        // End of file or the buffer won't be big enough for the next read.
+        if (read_bytes == 0 || data->len + BUFSIZE >= data->total_len) {
+            fprintf(stderr, "audiosync: finished ffmpeg loop\n");
+            break;
         }
 
         data->len += read_bytes / sizeof(*(data->buf));
@@ -101,7 +103,7 @@ int ffmpeg_pipe(struct ffmpeg_data *data, char *args[]) {
 
             pthread_mutex_lock(&mutex);
             while (global_status == PAUSED_ST) {
-                pthread_cond_wait(&ffmpeg_continue, &mutex);
+                pthread_cond_wait(&read_continue, &mutex);
             }
             pthread_mutex_unlock(&mutex);
 
@@ -112,11 +114,11 @@ int ffmpeg_pipe(struct ffmpeg_data *data, char *args[]) {
                         " quitting...\n");
                 kill(pid, SIGKILL);
                 wait(NULL);
-            } else {
-                fprintf(stderr, "audiosync: resuming ffmpeg\n");
-                kill(pid, SIGCONT);
+                goto finish;
             }
 
+            fprintf(stderr, "audiosync: resuming ffmpeg\n");
+            kill(pid, SIGCONT);
             break;
         default:
             // RUNNING_ST and IDLE_ST are ignored.

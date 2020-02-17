@@ -39,7 +39,7 @@ volatile global_status_t global_status = IDLE_ST;
 // already.
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t interval_done = PTHREAD_COND_INITIALIZER;
-pthread_cond_t ffmpeg_continue = PTHREAD_COND_INITIALIZER;
+pthread_cond_t read_continue = PTHREAD_COND_INITIALIZER;
 
 // The algorithm will be run in these intervals. When both threads signal
 // that their interval is finished, the cross correlation will be calculated.
@@ -80,7 +80,7 @@ void audiosync_abort() {
     global_status = ABORT_ST;
     // The abort "wakes up" all threads waiting for something.
     pthread_cond_broadcast(&interval_done);
-    pthread_cond_broadcast(&ffmpeg_continue);
+    pthread_cond_broadcast(&read_continue);
     pthread_mutex_unlock(&mutex);
 }
 
@@ -95,7 +95,7 @@ void audiosync_resume() {
     // Changes the global status and sends a signal to the ffmpeg threads
     // that will be waiting.
     global_status = RUNNING_ST;
-    pthread_cond_broadcast(&ffmpeg_continue);
+    pthread_cond_broadcast(&read_continue);
     pthread_mutex_unlock(&mutex);
 }
 
@@ -132,10 +132,8 @@ char *status_to_string(global_status_t status) {
 // It's possible that the setup fails, so it returns an integer which will
 // be zero on success, and negative on error.
 int audiosync_setup(char *stream_name) {
-    fprintf(stderr, "audiosync: setting up audiosync module... ");
-    int ret = pulseaudio_setup(stream_name);
-    fprintf(stderr, "%s\n", ret < 0 ? "failed" : "success");
-    return ret;
+    fprintf(stderr, "audiosync: setting up audiosync module\n");
+    return pulseaudio_setup(stream_name);
 }
 
 // This function starts the algorithm. Only one audiosync thread can be

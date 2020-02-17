@@ -3,7 +3,8 @@
 // sink will be created, and the media player's stream will be moved to
 // the new sink to later be able to record it easily.
 //
-// Also, it's intended to only be run once.
+// A more complete and updated version of this program can be found in
+// src/capture/linux_capture.c
 //
 // It can be compiled with:
 // $ gcc pulseaudio_setup_sketch.c -o pulse_setup -lpulse
@@ -26,16 +27,28 @@
 #define MAX_LONG_DESCRIPTION 256
 
 
+// The possible states when connecting to the PulseAudio server.
 typedef enum {
     PA_REQUEST_NOT_READY = 0,
     PA_REQUEST_READY = 1,
     PA_REQUEST_ERROR = 2
 } pa_request_state_t;
 
-static void pa_state_cb(pa_context *c, void *userdata);
-static void pa_state_cb(pa_context *c, void *userdata);
-static void load_module_cb(pa_context *c, uint32_t index, void *userdata);
-static void find_stream_cb(pa_context *c, const pa_sink_input_info *i, int eol, void *userdata);
+// The main loop is split into the different states that will be followed.
+typedef enum {
+    // Check if this function has been called before (skips to 3 if true)
+    LOOP_CHECK_SINK = 0,
+    // Create a null sink for the audiosync extension
+    LOOP_CREATE_SINK = 1,
+    // Loopback into the new sink
+    LOOP_LOOPBACK = 2,
+    // Search the media player's stream
+    LOOP_GET_STREAM = 3,
+    // Move the found stream into the new sink
+    LOOP_MOVE_STREAM = 4,
+    // Last state before ending the loop
+    LOOP_FINISHED = 5
+} loop_state_t;
 
 // The stream name is a global so that it can be accessed inside callback
 // functions.
@@ -69,6 +82,25 @@ static void operation_cb(pa_context *c, int success, void *userdata) {
     *ret = success;
 }
 
+// Callback used to check if the custom monitor already exists.
+static void sink_exists_cb(pa_context *c, const pa_sink_info *i, int eol, void *userdata) {
+    int *exists = userdata;
+
+    // If eol is positive it means there aren't more available streams.
+    if (eol > 0) {
+        return;
+    }
+
+    // Checking if the sink's name is the same. First of all, checking that
+    // the provided name isn't empty.
+    if (i->name == NULL) {
+        return;
+    }
+    if (strcmp(i->name, SINK_NAME) == 0) {
+        *exists = 1;
+    }
+}
+
 // Callback used to look for the media player's stream to obtain its index.
 static void find_stream_cb(pa_context *c, const pa_sink_input_info *i, int eol, void *userdata) {
     uint32_t *index = userdata;
@@ -94,13 +126,6 @@ static void find_stream_cb(pa_context *c, const pa_sink_input_info *i, int eol, 
     }
 }
 
-// This function will run the pulseaudio mainloop with everything that needs
-// to be done:
-//     1. Create a null sink for the audiosync extension
-//     2. Loopback into the new sink
-//     3. Search the media player's stream
-//     4. Move the found stream into the new sink
-//
 // Pulseaudio asynchronously handles all the requests, so this mainloop
 // structure is needed to handle them one by one.
 int main(int argc, char *argv[]) {
@@ -132,7 +157,8 @@ int main(int argc, char *argv[]) {
     pa_context_set_state_callback(pa_ctx, pa_state_cb, &server_status);
 
     // We'll need these state variables to keep track of our requests
-    int state = 0;
+    loop_state_t state = LOOP_CHECK_SINK;
+    int sink_exists = 0;
     int ret;
     uint32_t stream_index = PA_INVALID_INDEX;
     while (1) {
@@ -145,7 +171,7 @@ int main(int argc, char *argv[]) {
 
         // Error connecting to the server.
         if (server_status == PA_REQUEST_ERROR) {
-            fprintf(stderr, "Error when connecting to the server.\n");
+            fprintf(stderr, "audiosync: error when connecting to the server.\n");
             pa_context_disconnect(pa_ctx);
             pa_context_unref(pa_ctx);
             pa_mainloop_free(pa_ml);
@@ -155,19 +181,42 @@ int main(int argc, char *argv[]) {
         // At this point, we're connected to the server and ready to make
         // requests.
         switch (state) {
-        case 0:
-            // This sends an operation to the server. The first one will be
-            // loading a new sink for audiosync.
-            pa_op = pa_context_load_module(
-                pa_ctx, "module-null-sink", "sink_name=" SINK_NAME
-                " sink_properties=device.description=" SINK_NAME
-                " format=float32le",
-                load_module_cb, &ret);
-
+        case LOOP_CHECK_SINK:
+            // Checking if there already exists a sink with the same name,
+            // meaning that this function has been called more than once and
+            // that this can skip directly to step number 3.
+            pa_op = pa_context_get_sink_info_list(
+                        pa_ctx, sink_exists_cb, &sink_exists);
             state++;
             break;
 
-        case 1:
+        case LOOP_CREATE_SINK:
+            // This sends an operation to the server. The first one will be
+            // loading a new sink for audiosync.
+            if (pa_operation_get_state(pa_op) == PA_OPERATION_DONE) {
+                // If the previous operation concluded that the custom sink
+                // already exists, then it's reused, and it skips to the
+                // last step related to creating the sink.
+                if (sink_exists) {
+                    fprintf(stderr, "audiosync: found custom monitor, reusing it\n");
+                    pa_op = pa_context_get_sink_input_info_list(
+                        pa_ctx, find_stream_cb, &stream_index);
+                    state = LOOP_MOVE_STREAM;
+                    break;
+                }
+
+                fprintf(stderr, "audiosync: no custom monitor found, creating a new one\n");
+                pa_op = pa_context_load_module(
+                    pa_ctx, "module-null-sink", "sink_name=" SINK_NAME
+                    " sink_properties=device.description=" SINK_NAME
+                    " format=float32le",
+                    load_module_cb, &ret);
+
+                state++;
+            }
+            break;
+
+        case LOOP_LOOPBACK:
             // Now we wait for our operation to complete. When it's
             // complete, we move along to the next state, which is loading
             // the loopback module for the new virtual sink created.
@@ -175,12 +224,13 @@ int main(int argc, char *argv[]) {
                 // Checking the returned value by the previous state's module
                 // load.
                 if (ret < 0) {
-                    fprintf(stderr, "module-null-sink failed to load\n");
+                    fprintf(stderr, "audiosync: module-null-sink failed to load\n");
                     return 1;
                 }
 
                 // latency_msec is needed so that the virtual sink's audio is
                 // synchronized with the desktop audio (disables the delay).
+                fprintf(stderr, "audiosync: new sink created, loading loopback\n");
                 pa_op = pa_context_load_module(
                     pa_ctx, "module-loopback", "source=" SINK_NAME ".monitor"
                     " latency_msec=1", load_module_cb, &ret);
@@ -189,15 +239,16 @@ int main(int argc, char *argv[]) {
             }
             break;
 
-        case 2:
+        case LOOP_GET_STREAM:
             // Looking for the media player stream. The provided name will
             // should be set as the application.name property.
             if (pa_operation_get_state(pa_op) == PA_OPERATION_DONE) {
                 if (ret < 0) {
-                    fprintf(stderr, "module-loopback failed to load\n");
+                    fprintf(stderr, "audiosync: module-loopback failed to load\n");
                     return 1;
                 }
 
+                fprintf(stderr, "audiosync: looking for the provided stream\n");
                 pa_op = pa_context_get_sink_input_info_list(
                     pa_ctx, find_stream_cb, &stream_index);
 
@@ -205,15 +256,16 @@ int main(int argc, char *argv[]) {
             }
             break;
 
-        case 3:
+        case LOOP_MOVE_STREAM:
             // Moving the specified playback stream to the new virtual sink,
             // identified by its index, to the audiosync virtual sink.
             if (pa_operation_get_state(pa_op) == PA_OPERATION_DONE) {
                 if (stream_index == PA_INVALID_INDEX) {
-                    fprintf(stderr, "application stream couldn't be found\n");
+                    fprintf(stderr, "audiosync: application stream couldn't be found\n");
                     return 1;
                 }
 
+                fprintf(stderr, "audiosync: moving the found stream\n");
                 pa_op = pa_context_move_sink_input_by_name(
                     pa_ctx, stream_index, SINK_NAME, operation_cb, &ret);
 
@@ -221,14 +273,15 @@ int main(int argc, char *argv[]) {
             }
             break;
 
-        case 4:
+        case LOOP_FINISHED:
             // Last state, will exit.
             if (pa_operation_get_state(pa_op) == PA_OPERATION_DONE) {
                 if (ret < 0) {
-                    fprintf(stderr, "failed to move the streams\n");
+                    fprintf(stderr, "audiosync: failed to move the streams\n");
                     return 1;
                 }
 
+                fprintf(stderr, "audiosync: setup complete\n");
                 return 0;
             }
             break;
