@@ -1,5 +1,4 @@
-#ifndef _H_CROSS_CORRELATION
-#define _H_CROSS_CORRELATION
+#pragma once
 
 #include <stdlib.h>
 
@@ -25,6 +24,3 @@ double pearson_coefficient(double *source_start, double *source_end,
 // In case of error, the function returns -1.
 int cross_correlation(double *data1, double *data2, const size_t length,
                       long int *displacement, double *coefficient);
-
-
-#endif /* _H_CROSS_CORRELATION */

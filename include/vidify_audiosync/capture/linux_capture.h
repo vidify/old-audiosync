@@ -1,8 +1,4 @@
-#ifndef _H_CAPTURE
-#define _H_CAPTURE
+#pragma once
 
-
+int pulseaudio_setup(char *stream_name);
 void *capture(void *);
-
-
-#endif /* _H_CAPTURE */

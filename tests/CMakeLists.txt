@@ -5,6 +5,7 @@ set(
     fftw3
     m
     pthread
+    pulse
     ${HEADERS}
 )
 

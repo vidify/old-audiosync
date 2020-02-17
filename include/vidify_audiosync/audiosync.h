@@ -1,5 +1,4 @@
-#ifndef _H_AUDIOSYNC
-#define _H_AUDIOSYNC
+#pragma once
 
 #include <stdlib.h>
 #include <pthread.h>
@@ -56,7 +55,5 @@ extern char *status_to_string(global_status_t status);
 extern void audiosync_abort();
 extern void audiosync_pause();
 extern void audiosync_resume();
+extern int audiosync_setup(char *stream_name);
 extern int audiosync_run(char *yt_title, long int *lag);
-
-
-#endif /* _H_AUDIOSYNC */
