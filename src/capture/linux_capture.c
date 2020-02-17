@@ -42,7 +42,7 @@ typedef enum {
 
 // The stream name is a global so that it can be accessed inside callback
 // functions. It will be initialized when pulseaudio_setup is called.
-static char *stream_name;
+static char stream_name[MAX_LONG_NAME];
 // Variable that acts as a boolean to indicate if the setup function was
 // called and worked successfully.
 static int use_default = 1;
@@ -125,26 +125,36 @@ static void find_stream_cb(pa_context *c, const pa_sink_input_info *i, int eol, 
 int pulseaudio_setup(char *name) {
     // Saving the stream name as a global variable so that it can be accessed
     // within the callback functions.
-    stream_name = strdup(name);
+    strcpy(stream_name, name);
 
     // Define the pulseaudio loop and connection variables
-    pa_mainloop *pa_ml = NULL;
-    pa_mainloop_api *pa_mlapi = NULL;
-    pa_operation *pa_op = NULL;
-    pa_context *pa_ctx = NULL;
+    pa_mainloop *mainloop = NULL;
+    pa_mainloop_api *mainloop_api = NULL;
+    pa_operation *op = NULL;
+    pa_context *context = NULL;
 
     // Create a mainloop API and connection to the default server
-    pa_ml = pa_mainloop_new();
-    pa_mlapi = pa_mainloop_get_api(pa_ml);
-    pa_ctx = pa_context_new(pa_mlapi, SINK_NAME);
-    pa_context_connect(pa_ctx, NULL, 0, NULL);
+    if ((mainloop = pa_mainloop_new()) == NULL) {
+        fprintf(stderr, "audiosync: pa_mainloop_new failed\n");
+        goto error;
+    }
+    mainloop_api = pa_mainloop_get_api(mainloop);
+    if ((context = pa_context_new(mainloop_api, SINK_NAME)) == NULL) {
+        fprintf(stderr, "audiosync: pa_context_new failed\n");
+        goto error;
+    }
+    goto finish;
+    if (pa_context_connect(context, NULL, 0, NULL) < 0) {
+        fprintf(stderr, "audiosync: pa_context_connect failed\n");
+        goto error;
+    }
 
     // This function defines a callback so the server will tell us its state.
     // Our callback will wait for the state to be ready. The callback will
     // modify the variable so we know when we have a connection and it's
     // ready or when it has failed.
     request_state_t server_status = PA_REQUEST_NOT_READY;
-    pa_context_set_state_callback(pa_ctx, state_change_cb, &server_status);
+    pa_context_set_state_callback(context, state_change_cb, &server_status);
 
     // To keep track of our requests
     loop_state_t state = LOOP_CHECK_SINK;
@@ -161,13 +171,13 @@ int pulseaudio_setup(char *name) {
         if (server_status == PA_REQUEST_NOT_READY) {
             // We can't do anything until PA is ready, so just iterate the
             // mainloop and continue.
-            pa_mainloop_iterate(pa_ml, 1, NULL);
+            pa_mainloop_iterate(mainloop, 1, NULL);
             continue;
         }
 
         if (server_status == PA_REQUEST_ERROR) {
             // Error connecting to the server.
-            fprintf(stderr, "Error when connecting to the server.\n");
+            fprintf(stderr, "audiosync: error when connecting to the server.\n");
             ret = -1;
             goto error;
         }
@@ -179,32 +189,32 @@ int pulseaudio_setup(char *name) {
             // Checking if there already exists a sink with the same name,
             // meaning that this function has been called more than once and
             // that this can skip directly to step number 3.
-            pa_op = pa_context_get_sink_info_list(
-                        pa_ctx, sink_exists_cb, &sink_exists);
+            op = pa_context_get_sink_info_list(
+                context, sink_exists_cb, &sink_exists);
             state++;
             break;
 
         case LOOP_CREATE_SINK:
             // This sends an operation to the server. The first one will be
             // loading a new sink for audiosync.
-            if (pa_operation_get_state(pa_op) == PA_OPERATION_DONE) {
+            if (pa_operation_get_state(op) == PA_OPERATION_DONE) {
                 // If the previous operation concluded that the custom sink
                 // already exists, then it's reused, and it skips to the
                 // last step related to creating the sink.
                 if (sink_exists) {
                     fprintf(stderr, "audiosync: found custom monitor, reusing it\n");
-                    pa_op = pa_context_get_sink_input_info_list(
-                        pa_ctx, find_stream_cb, &stream_index);
+                    op = pa_context_get_sink_input_info_list(
+                        context, find_stream_cb, &stream_index);
                     state = LOOP_MOVE_STREAM;
                     break;
                 }
 
                 fprintf(stderr, "audiosync: no custom monitor found, creating a new one\n");
-                pa_op = pa_context_load_module(
-                    pa_ctx, "module-null-sink", "sink_name=" SINK_NAME
-                    " sink_properties=device.description=" SINK_NAME
-                    " format=float32le",
-                    load_module_cb, &ret);
+                op = pa_context_load_module(
+                    context, "module-null-sink", "sink_name=" SINK_NAME
+                        " sink_properties=device.description=" SINK_NAME
+                        " format=float32le",
+                        load_module_cb, &ret);
 
                 state++;
             }
@@ -214,19 +224,19 @@ int pulseaudio_setup(char *name) {
             // Now we wait for our operation to complete. When it's
             // complete, we move along to the next state, which is loading
             // the loopback module for the new virtual sink created.
-            if (pa_operation_get_state(pa_op) == PA_OPERATION_DONE) {
+            if (pa_operation_get_state(op) == PA_OPERATION_DONE) {
                 // Checking the returned value by the previous state's module
                 // load.
                 if (ret < 0) {
-                    fprintf(stderr, "module-null-sink failed to load\n");
+                    fprintf(stderr, "audiosync: module-null-sink failed to load\n");
                     goto error;
                 }
 
                 // latency_msec is needed so that the virtual sink's audio is
                 // synchronized with the desktop audio (disables the delay).
-                fprintf(stderr, "audiosync: new sink created, loading loopback\n");
-                pa_op = pa_context_load_module(
-                    pa_ctx, "module-loopback", "source=" SINK_NAME ".monitor"
+                fprintf(stderr, "audiosync: loading loopback on the new sink\n");
+                op = pa_context_load_module(
+                    context, "module-loopback", "source=" SINK_NAME ".monitor"
                     " latency_msec=1", load_module_cb, &ret);
 
                 state++;
@@ -236,15 +246,15 @@ int pulseaudio_setup(char *name) {
         case LOOP_GET_STREAM:
             // Looking for the media player stream. The provided name will
             // should be set as the application.name property.
-            if (pa_operation_get_state(pa_op) == PA_OPERATION_DONE) {
+            if (pa_operation_get_state(op) == PA_OPERATION_DONE) {
                 if (ret < 0) {
-                    fprintf(stderr, "module-loopback failed to load\n");
+                    fprintf(stderr, "audiosync: module-loopback failed to load\n");
                     goto error;
                 }
 
                 fprintf(stderr, "audiosync: looking for the provided stream\n");
-                pa_op = pa_context_get_sink_input_info_list(
-                    pa_ctx, find_stream_cb, &stream_index);
+                op = pa_context_get_sink_input_info_list(
+                    context, find_stream_cb, &stream_index);
 
                 state++;
             }
@@ -253,16 +263,16 @@ int pulseaudio_setup(char *name) {
         case LOOP_MOVE_STREAM:
             // Moving the specified playback stream to the new virtual sink,
             // identified by its index, to the audiosync virtual sink.
-            if (pa_operation_get_state(pa_op) == PA_OPERATION_DONE) {
+            if (pa_operation_get_state(op) == PA_OPERATION_DONE) {
                 if (stream_index == PA_INVALID_INDEX) {
-                    fprintf(stderr, "application stream couldn't be found\n");
+                    fprintf(stderr, "audiosync: application stream couldn't be found\n");
                     ret = -1;
                     goto error;
                 }
 
                 fprintf(stderr, "audiosync: moving the found stream\n");
-                pa_op = pa_context_move_sink_input_by_name(
-                    pa_ctx, stream_index, SINK_NAME, operation_cb, &ret);
+                op = pa_context_move_sink_input_by_name(
+                    context, stream_index, SINK_NAME, operation_cb, &ret);
 
                 state++;
             }
@@ -270,9 +280,9 @@ int pulseaudio_setup(char *name) {
 
         case LOOP_FINISHED:
             // Last state, will exit.
-            if (pa_operation_get_state(pa_op) == PA_OPERATION_DONE) {
+            if (pa_operation_get_state(op) == PA_OPERATION_DONE) {
                 if (ret < 0) {
-                    fprintf(stderr, "failed to move the streams\n");
+                    fprintf(stderr, "audiosync: failed to move the streams\n");
                     goto error;
                 }
 
@@ -282,14 +292,17 @@ int pulseaudio_setup(char *name) {
 
         default:
             // Unexpected state
-            fprintf(stderr, "Unexpected state %d\n", state);
+            fprintf(stderr, "audiosync: unexpected state %d\n", state);
             ret = -1;
             goto error;
         }
 
         // Performing the next iteration. The second argument indicates to
         // block until something is ready to be done.
-        pa_mainloop_iterate(pa_ml, 1, NULL);
+        if (pa_mainloop_iterate(mainloop, 1, NULL) < 0) {
+            fprintf(stderr, "audiosync: pa_mainloop_iterate failed\n");
+            goto error;
+        }
     }
 
 finish:
@@ -300,9 +313,11 @@ finish:
 error:
     // Freeing all the allocated resources. No need to do so for the mainloop
     // API.
-    if (pa_ctx) pa_context_disconnect(pa_ctx);
-    if (pa_ctx) pa_context_unref(pa_ctx);
-    if (pa_ml) pa_mainloop_free(pa_ml);
+    if (context) {
+        pa_context_disconnect(context);
+        pa_context_unref(context);
+    }
+    if (mainloop) pa_mainloop_free(mainloop);
 
     return ret;
 }
