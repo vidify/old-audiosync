@@ -61,7 +61,7 @@ int ffmpeg_pipe(struct ffmpeg_data *data, char *args[]) {
     data->len = 0;
     while (1) {
         // Reading the data from ffmpeg in chunks of size `BUFSIZE`.
-        read_bytes = read(wav_pipe[PIPE_RD], (data->buf + data->len),
+        read_bytes = read(wav_pipe[PIPE_RD], data->buf + data->len,
                           BUFSIZE * sizeof(*(data->buf)));
 
         // Error when trying to read
@@ -147,4 +147,3 @@ int ffmpeg_pipe(struct ffmpeg_data *data, char *args[]) {
 finish:
     return ret;
 }
-

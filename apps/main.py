@@ -9,10 +9,11 @@ if len(sys.argv) < 2:
     exit(1)
 
 # After this is printed, the music should start playing in the background too
-print("Running audiosync")
 # Running the audiosync setup in case the sink name was provided
 if len(sys.argv) == 3:
+    print(f"Setting up audiosync with sinkname {sys.argv[1]}")
     audiosync.setup()
 # And finally the actual algorithm is ran
+print("Running audiosync")
 ret, success = audiosync.run(sys.argv[1])
 print(f"Obtained lag (success={success}): {ret}")

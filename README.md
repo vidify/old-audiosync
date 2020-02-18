@@ -37,8 +37,6 @@ make -j4
 ./apps/main "SONG NAME"
 ```
 
-Use `-DCMAKE_BUILD_TYPE=Debug` to enable debugging and save plots into the images directory. You'll need `gnuplot` installed for that, and a directory named `images`.
-
 * `apps/main.py`: the actual module usage in Python. You can simply use `python main.py "SONG NAME"`
 
 
@@ -84,6 +82,8 @@ cmake .. -DBUILD_TESTING=YES
 make
 make test
 ```
+
+Use `export CFLAGS="-DPLOT=YES` to enable debugging and save plots into the images directory. You'll need `gnuplot` installed for that, and a directory named `images`.
 
 Feel free to open up an issue or PR in case you have problems with the module or want to contribute. Do take in mind that this project's current status is still very early, so it's not too stable.
 

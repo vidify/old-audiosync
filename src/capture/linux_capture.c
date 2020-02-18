@@ -170,7 +170,10 @@ int pulseaudio_setup(char *name) {
         if (server_status == PA_REQUEST_NOT_READY) {
             // We can't do anything until PA is ready, so just iterate the
             // mainloop and continue.
-            pa_mainloop_iterate(mainloop, 1, NULL);
+            if (pa_mainloop_iterate(mainloop, 1, NULL) < 0) {
+                fprintf(stderr, "audiosync: pa_mainloop_iterate failed\n");
+                goto error;
+            }
             continue;
         }
 
@@ -197,6 +200,8 @@ int pulseaudio_setup(char *name) {
             // This sends an operation to the server. The first one will be
             // loading a new sink for audiosync.
             if (pa_operation_get_state(op) == PA_OPERATION_DONE) {
+                pa_operation_unref(op);
+
                 // If the previous operation concluded that the custom sink
                 // already exists, then it's reused, and it skips to the
                 // last step related to creating the sink.
@@ -211,9 +216,8 @@ int pulseaudio_setup(char *name) {
                 fprintf(stderr, "audiosync: no custom monitor found, creating a new one\n");
                 op = pa_context_load_module(
                     context, "module-null-sink", "sink_name=" SINK_NAME
-                        " sink_properties=device.description=" SINK_NAME
-                        " format=float32le",
-                        load_module_cb, &ret);
+                    " sink_properties=device.description=" SINK_NAME,
+                    load_module_cb, &ret);
 
                 state++;
             }
@@ -224,6 +228,8 @@ int pulseaudio_setup(char *name) {
             // complete, we move along to the next state, which is loading
             // the loopback module for the new virtual sink created.
             if (pa_operation_get_state(op) == PA_OPERATION_DONE) {
+                pa_operation_unref(op);
+
                 // Checking the returned value by the previous state's module
                 // load.
                 if (ret < 0) {
@@ -246,6 +252,8 @@ int pulseaudio_setup(char *name) {
             // Looking for the media player stream. The provided name will
             // should be set as the application.name property.
             if (pa_operation_get_state(op) == PA_OPERATION_DONE) {
+                pa_operation_unref(op);
+
                 if (ret < 0) {
                     fprintf(stderr, "audiosync: module-loopback failed to load\n");
                     goto error;
@@ -263,6 +271,8 @@ int pulseaudio_setup(char *name) {
             // Moving the specified playback stream to the new virtual sink,
             // identified by its index, to the audiosync virtual sink.
             if (pa_operation_get_state(op) == PA_OPERATION_DONE) {
+                pa_operation_unref(op);
+
                 if (stream_index == PA_INVALID_INDEX) {
                     fprintf(stderr, "audiosync: application stream couldn't be found\n");
                     ret = -1;
@@ -280,6 +290,8 @@ int pulseaudio_setup(char *name) {
         case LOOP_FINISHED:
             // Last state, will exit.
             if (pa_operation_get_state(op) == PA_OPERATION_DONE) {
+                pa_operation_unref(op);
+
                 if (ret < 0) {
                     fprintf(stderr, "audiosync: failed to move the streams\n");
                     goto error;
