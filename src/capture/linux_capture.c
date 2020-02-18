@@ -7,7 +7,6 @@
 #include <pulse/simple.h>
 #include <pulse/error.h>
 #include <vidify_audiosync/audiosync.h>
-#include <vidify_audiosync/ffmpeg_pipe.h>
 #include <vidify_audiosync/capture/linux_capture.h>
 
 #define SINK_NAME "audiosync"
@@ -143,7 +142,6 @@ int pulseaudio_setup(char *name) {
         fprintf(stderr, "audiosync: pa_context_new failed\n");
         goto error;
     }
-    goto finish;
     if (pa_context_connect(context, NULL, 0, NULL) < 0) {
         fprintf(stderr, "audiosync: pa_context_connect failed\n");
         goto error;
@@ -340,7 +338,7 @@ void *capture(void *arg) {
            NULL,  // server name
            SINK_NAME,  // client name
            PA_STREAM_RECORD,  // type of stream
-           use_default ? NULL : SINK_NAME".monitor",  // sink name
+           use_default ? NULL : SINK_NAME ".monitor",  // sink name
            "recording for vidify's audiosync extension",  // stream description
            &ss,  // sample type
            NULL,  // channel map, NULL for default
@@ -364,24 +362,21 @@ void *capture(void *arg) {
     ssize_t read_bytes;
     data->len = 0;
     while (1) {
-        // Reading the data from ffmpeg in chunks of size `BUFSIZE`.
-        read_bytes = pa_simple_read(s, data->buf + data->len,
-                                    BUFSIZE * sizeof(*(data->buf)), &error);
-
-        // Error when reading.
-        if (read_bytes < 0) {
+        // Reading the data from pulseaudio in chunks of size `BUFSIZE`.
+        if (pa_simple_read(s, data->buf + data->len,
+                           BUFSIZE * sizeof(*(data->buf)), &error) < 0) {
             fprintf(stderr, "audiosync: pa_simple_read failed: %s\n", pa_strerror(error));
             audiosync_abort();
             goto finish;
         }
 
+        data->len += BUFSIZE;
+
         // End of file or the buffer won't be big enough for the next read.
-        if (read_bytes == 0 || data->len + BUFSIZE >= data->total_len) {
-            fprintf(stderr, "audiosync: finished ffmpeg loop\n");
+        if (data->len + BUFSIZE >= data->total_len) {
+            fprintf(stderr, "audiosync: finished capture loop\n");
             break;
         }
-
-        data->len += read_bytes / sizeof(*(data->buf));
 
         // Signaling the main thread when a full interval is read.
         if (data->len >= data->intervals[interval_count]) {
@@ -407,8 +402,7 @@ void *capture(void *arg) {
             }
             pthread_mutex_unlock(&mutex);
 
-            // After being woken up, checking if the ffmpeg process
-            // should continue or stop.
+            // After being woken up, checking to continue or stop.
             if (global_status == ABORT_ST) {
                 fprintf(stderr, "audiosync: read ABORT_ST after pause,"
                         " quitting...\n");

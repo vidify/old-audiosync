@@ -71,13 +71,13 @@ int ffmpeg_pipe(struct ffmpeg_data *data, char *args[]) {
             goto finish;
         }
 
+        data->len += read_bytes / sizeof(*(data->buf));
+
         // End of file or the buffer won't be big enough for the next read.
         if (read_bytes == 0 || data->len + BUFSIZE >= data->total_len) {
             fprintf(stderr, "audiosync: finished ffmpeg loop\n");
             break;
         }
-
-        data->len += read_bytes / sizeof(*(data->buf));
 
         // Signaling the main thread when a full interval is read.
         if (data->len >= data->intervals[interval_count]) {
