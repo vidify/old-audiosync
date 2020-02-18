@@ -7,6 +7,7 @@
 #include <pulse/simple.h>
 #include <pulse/error.h>
 #include <vidify_audiosync/audiosync.h>
+#include <vidify_audiosync/ffmpeg_pipe.h>
 #include <vidify_audiosync/capture/linux_capture.h>
 
 #define SINK_NAME "audiosync"
@@ -323,115 +324,17 @@ error:
 void *capture(void *arg) {
     struct ffmpeg_data *data = arg;
 
-    // The sample type to use
-    static const pa_sample_spec ss = {
-        .format = PA_SAMPLE_FLOAT32LE,
-        .rate = SAMPLE_RATE,
-        .channels = NUM_CHANNELS
-    };
-    pa_simple *s = NULL;
-    int error;
-
-    // Create the recording stream. The used sink depends on whether the
-    // custom monitor has been set-up previously.
-    s = pa_simple_new(
-           NULL,  // server name
-           SINK_NAME,  // client name
-           PA_STREAM_RECORD,  // type of stream
-           use_default ? NULL : SINK_NAME ".monitor",  // sink name
-           "recording for vidify's audiosync extension",  // stream description
-           &ss,  // sample type
-           NULL,  // channel map, NULL for default
-           NULL,  // buffer attributes, NULL for default
-           &error);  // returned error code
-    if (s == NULL) {
-        fprintf(stderr, "audiosync: pa_simple_new failed: %s\n", pa_strerror(error));
-        goto finish;
-    }
-
-    // Finally starting to record the audio.
+    // Finally starting to record the audio with ffmpeg. If the setup function
+    // was called and it was successful, the audiosync monitor is used.
+    // Otherwise, the default monitor will record the entire device audio.
     fprintf(stderr, "audiosync: using %s\n",
             use_default ? "default monitor" : "custom monitor");
-
-    // Starting the main loop. It will read until an entire interval is
-    // finished, and then signal the main thread, so that it can run the
-    // audio synchronization algorithm.
-    //
-    // Very similar structure to the one found in ffmpeg_pipe
-    int interval_count = 0;
-    ssize_t read_bytes;
-    data->len = 0;
-    while (1) {
-        // Reading the data from pulseaudio in chunks of size `BUFSIZE`.
-        if (pa_simple_read(s, data->buf + data->len,
-                           BUFSIZE * sizeof(*(data->buf)), &error) < 0) {
-            fprintf(stderr, "audiosync: pa_simple_read failed: %s\n", pa_strerror(error));
-            audiosync_abort();
-            goto finish;
-        }
-
-        data->len += BUFSIZE;
-
-        // End of file or the buffer won't be big enough for the next read.
-        if (data->len + BUFSIZE >= data->total_len) {
-            fprintf(stderr, "audiosync: finished capture loop\n");
-            break;
-        }
-
-        // Signaling the main thread when a full interval is read.
-        if (data->len >= data->intervals[interval_count]) {
-            pthread_mutex_lock(&mutex);
-            pthread_cond_signal(&interval_done);
-            pthread_mutex_unlock(&mutex);
-            interval_count++;
-        }
-
-        // Checking if the main process has indicated that this thread
-        // should end (accessing it atomically).
-        switch (audiosync_status()) {
-        case ABORT_ST:
-            fprintf(stderr, "audiosync: read ABORT_ST, quitting...\n");
-            goto finish;
-        case PAUSED_ST:
-            // Suspending this thread until indicated to continue (or abort,
-            // in which case the function will end directly).
-            fprintf(stderr, "audiosync: stopping audio capture\n");
-            pthread_mutex_lock(&mutex);
-            while (global_status == PAUSED_ST) {
-                pthread_cond_wait(&read_continue, &mutex);
-            }
-            pthread_mutex_unlock(&mutex);
-
-            // After being woken up, checking to continue or stop.
-            if (global_status == ABORT_ST) {
-                fprintf(stderr, "audiosync: read ABORT_ST after pause,"
-                        " quitting...\n");
-                goto finish;
-            }
-
-            fprintf(stderr, "audiosync: resuming audio capture\n");
-            break;
-        default:
-            // RUNNING_ST and IDLE_ST are ignored.
-            break;
-        }
-    }
-
-    // If the track isn't long enough for every interval, the rest of the
-    // data is filled with zeroes.
-    if (data->len < data->total_len) {
-        memset(data->buf + data->len, 0.0,
-               sizeof(*(data->buf)) * (data->total_len - data->len));
-        data->len = data->total_len;
-        // Also sending a signal to the main thread indicating it that all the
-        // intervals have been read successfully.
-        pthread_mutex_lock(&mutex);
-        pthread_cond_signal(&interval_done);
-        pthread_mutex_unlock(&mutex);
-    }
-
-finish:
-    if (s) pa_simple_free(s);
+    char *args[] = {
+        "ffmpeg", "-y", "-to", MAX_SECONDS_STR, "-f", "pulse", "-i",
+        use_default ? "default" : (SINK_NAME ".monitor"), "-ac",
+        NUM_CHANNELS_STR, "-r", SAMPLE_RATE_STR, "-f", "f64le", "pipe:1", NULL
+    };
+    ffmpeg_pipe(data, args);
 
     pthread_exit(NULL);
 }
