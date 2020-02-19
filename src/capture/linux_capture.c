@@ -51,6 +51,7 @@ static int use_default = 1;
 // This PulseAudio function acts as a callback when the context changes state.
 // We really only care about when it's ready or if it has failed.
 static void state_change_cb(pa_context *c, void *userdata) {
+    UNUSED(c);
 	int *server_status = userdata;
 
 	pa_context_state_t state = pa_context_get_state(c);
@@ -64,6 +65,7 @@ static void state_change_cb(pa_context *c, void *userdata) {
 // Simple callback function called after the module has been loaded with
 // pa_module_load. It returns the operation index, which can be an error.
 static void load_module_cb(pa_context *c, uint32_t index, void *userdata) {
+    UNUSED(c);
     int *ret = userdata;
 
     *ret = (index == PA_INVALID_INDEX) ? -1 : 0;
@@ -71,12 +73,14 @@ static void load_module_cb(pa_context *c, uint32_t index, void *userdata) {
 
 // Simple callback function that returns if the operation was successful.
 static void operation_cb(pa_context *c, int success, void *userdata) {
+    UNUSED(c);
     int *ret = userdata;
     *ret = success;
 }
 
 // Callback used to check if the custom monitor already exists.
 static void sink_exists_cb(pa_context *c, const pa_sink_info *i, int eol, void *userdata) {
+    UNUSED(c);
     int *exists = userdata;
 
     // If eol is positive it means there aren't more available streams.
@@ -96,6 +100,7 @@ static void sink_exists_cb(pa_context *c, const pa_sink_info *i, int eol, void *
 
 // Callback used to look for the media player's stream to obtain its index.
 static void find_stream_cb(pa_context *c, const pa_sink_input_info *i, int eol, void *userdata) {
+    UNUSED(c);
     uint32_t *index = userdata;
 
     // If eol is positive it means there aren't more available streams.
