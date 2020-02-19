@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 FFMPEG_FLAGS="-ac 1 -r 48000"
 

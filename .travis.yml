@@ -14,6 +14,9 @@ addons:
         - gnuplot
 
 script:
+    # Installing the python extension
+    - pip3 install -U pip
+    - pip3 install .
     # Compilation in the build/ directory
     - mkdir build
     - cd build

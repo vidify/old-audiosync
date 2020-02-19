@@ -1,4 +1,5 @@
-#!/bin/python3
+#!/usr/bin/env python3
+
 # This benchmark will start playing songs on Spotify while running audiosync
 # for each of them. The Spotify client must be open when this script is run
 # for audiosync to record the output.

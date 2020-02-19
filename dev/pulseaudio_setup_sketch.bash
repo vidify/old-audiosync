@@ -1,4 +1,5 @@
-#!/usr/bin/env bash 
+#!/usr/bin/env bash
+
 # This script is a sketch of what happens inside audiosync's pulseaudio
 # implementation. It moves the spotify's output into the audiosync sink.
 # See https://github.com/vidify/audiosync/issues/22 for more.

@@ -62,7 +62,7 @@ static PyMethodDef VidifyAudiosyncMethods[] = {
 };
 
 
-static struct PyModuleDef vidify_audiosync = {
+static struct PyModuleDef audiosync = {
     PyModuleDef_HEAD_INIT,
     "audiosync",
     "The audio synchronization module for vidify.",
@@ -71,8 +71,8 @@ static struct PyModuleDef vidify_audiosync = {
 };
 
 
-PyMODINIT_FUNC PyInit_vidify_audiosync(void) {
-    return PyModule_Create(&vidify_audiosync);
+PyMODINIT_FUNC PyInit_audiosync(void) {
+    return PyModule_Create(&audiosync);
 }
 
 
@@ -139,7 +139,7 @@ PyObject *audiosyncmodule_setup(PyObject *self, PyObject *args) {
 
     int ret;
     Py_BEGIN_ALLOW_THREADS
-    ret = audiosync_setup();
+    ret = audiosync_setup(name);
     Py_END_ALLOW_THREADS
 
     return Py_BuildValue("O", ret == 0 ? Py_True : Py_False);

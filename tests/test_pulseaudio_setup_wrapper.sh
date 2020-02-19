@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env sh
 
 # Shell test used to make sure that the pulseaudio setup works correctly. It's
 # written in sh because that way, setting up the required streams and such
