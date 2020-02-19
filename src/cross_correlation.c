@@ -1,6 +1,5 @@
-#ifdef DEBUG
-# define _GNU_SOURCE  // Debug mode uses popen, order matters
-# include <time.h>  // Debug mode uses timers
+#ifdef PLOT
+# define _GNU_SOURCE  // Debug mode uses popen
 #endif
 #include <stdio.h>
 #include <stdlib.h>
@@ -131,7 +130,7 @@ int cross_correlation(double *source, double *input_sample,
     memset(sample + sample_len, 0,
            (source_len - sample_len) * sizeof(*sample));
 
-#ifdef DEBUG
+#ifdef PLOT
     // Plotting the output with gnuplot
     fprintf(stderr, "audiosync: Saving initial plot to '%ld_original.png'\n",
             source_len);
@@ -148,9 +147,6 @@ int cross_correlation(double *source, double *input_sample,
     fprintf(gnuplot, "e\n");
     fflush(gnuplot);
     pclose(gnuplot);
-
-    // Benchmarking the matching function
-    clock_t start = clock();
 #endif
 
     // Getting the complex results from both FFT. The output length for the
@@ -261,10 +257,7 @@ int cross_correlation(double *source, double *input_sample,
     fprintf(stderr, "audiosync: %ld frames of delay with a confidence of %f\n",
             *lag, *coefficient);
 
-#ifdef DEBUG
-    fprintf(stderr, "audiosync: Result obtained in %f secs\n",
-            (clock() - start) / (double) CLOCKS_PER_SEC);
-
+#ifdef PLOT
     // Plotting the output with gnuplot
     fprintf(stderr, "audiosync: Saving plot to '%ld.png'\n", source_len);
     gnuplot = popen("gnuplot", "w");

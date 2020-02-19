@@ -12,7 +12,7 @@ audiosync = Extension(
     define_macros = defines,
     extra_compile_args = args,
     include_dirs = ['include'],
-    libraries = ['m', 'pthread', 'fftw3'],
+    libraries = ['m', 'pthread', 'fftw3', 'pulse'],
     library_dirs = ['/usr/local/lib'],
     sources = ['src/bind.c', 'src/audiosync.c', 'src/cross_correlation.c',
                'src/ffmpeg_pipe.c', 'src/download/linux_download.c',

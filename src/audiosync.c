@@ -1,4 +1,4 @@
-// AudioSync is the audio synchronization feature made for vidify.
+// Audiosync is the audio synchronization feature made for vidify.
 //
 // The objective of the module is to obtain the delay between two audio files.
 // In its real usage, one of them will be the YouTube downloaded video and
@@ -15,6 +15,10 @@
 // `cross_correlation` may be used as a standalone, regular function, but all
 // other functions declared in this module are intended to be used with
 // threadig, since Vidify uses a GUI and has to run this concurrently.
+
+#ifdef _WIN32
+# error "Audiosync is not available on Windows yet."
+#endif
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -35,7 +39,7 @@ volatile global_status_t global_status = IDLE_ST;
 // already.
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t interval_done = PTHREAD_COND_INITIALIZER;
-pthread_cond_t ffmpeg_continue = PTHREAD_COND_INITIALIZER;
+pthread_cond_t read_continue = PTHREAD_COND_INITIALIZER;
 
 // The algorithm will be run in these intervals. When both threads signal
 // that their interval is finished, the cross correlation will be calculated.
@@ -76,22 +80,25 @@ void audiosync_abort() {
     global_status = ABORT_ST;
     // The abort "wakes up" all threads waiting for something.
     pthread_cond_broadcast(&interval_done);
-    pthread_cond_broadcast(&ffmpeg_continue);
+    pthread_cond_broadcast(&read_continue);
     pthread_mutex_unlock(&mutex);
 }
+
 void audiosync_pause() {
     pthread_mutex_lock(&mutex);
     global_status = PAUSED_ST;
     pthread_mutex_unlock(&mutex);
 }
+
 void audiosync_resume() {
     pthread_mutex_lock(&mutex);
     // Changes the global status and sends a signal to the ffmpeg threads
     // that will be waiting.
     global_status = RUNNING_ST;
-    pthread_cond_broadcast(&ffmpeg_continue);
+    pthread_cond_broadcast(&read_continue);
     pthread_mutex_unlock(&mutex);
 }
+
 global_status_t audiosync_status() {
     global_status_t ret;
     pthread_mutex_lock(&mutex);
@@ -117,6 +124,17 @@ char *status_to_string(global_status_t status) {
     }
 }
 
+// The setup function has to be called before anything else. It will
+// initialize the PulseAudio sink to later record the media player output.
+// Thus, the `stream_name` variable indicates the name of the music player
+// being used. For example, "Spotify".
+//
+// It's possible that the setup fails, so it returns an integer which will
+// be zero on success, and negative on error.
+int audiosync_setup(char *stream_name) {
+    fprintf(stderr, "audiosync: setting up audiosync module\n");
+    return pulseaudio_setup(stream_name);
+}
 
 // This function starts the algorithm. Only one audiosync thread can be
 // running at once.

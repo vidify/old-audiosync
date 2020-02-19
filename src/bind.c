@@ -1,3 +1,10 @@
+// This file defines the Python bindings for the audiosync C extension.
+//
+// It's fairly straightforward, since all it does is convert the C types
+// to Python and vice versa, so that audiosync can be used, and the
+// returned values can be used from Python. The defined functions will behave
+// the same as if they were used in C.
+
 #define PY_SSIZE_T_CLEAN
 #include <Python.h>
 #include <vidify_audiosync/audiosync.h>
@@ -7,6 +14,7 @@ PyObject *audiosyncmodule_pause(PyObject *self, PyObject *args);
 PyObject *audiosyncmodule_resume(PyObject *self, PyObject *args);
 PyObject *audiosyncmodule_abort(PyObject *self, PyObject *args);
 PyObject *audiosyncmodule_status(PyObject *self, PyObject *args);
+PyObject *audiosyncmodule_setup(PyObject *self, PyObject *args);
 PyObject *audiosyncmodule_run(PyObject *self, PyObject *args);
 
 
@@ -16,31 +24,39 @@ static PyMethodDef VidifyAudiosyncMethods[] = {
         audiosyncmodule_run,
         METH_VARARGS,
         "Obtain the provided YouTube song's lag in respect to the currently"
-        " playing track."
+        " playing track. It can only be run once at a time."
     },
     {
         "pause",
         audiosyncmodule_pause,
         METH_NOARGS,
-        "Pause the audiosync job."
+        "Pause the audiosync job. Thread-safe."
     },
     {
         "resume",
         audiosyncmodule_resume,
         METH_NOARGS,
         "Continue the audiosync job. This has no effect if it's not paused."
+        " Thread-safe."
     },
     {
         "abort",
         audiosyncmodule_abort,
         METH_NOARGS,
-        "Abort the audiosync job."
+        "Abort the audiosync job. Thread-safe."
     },
     {
         "status",
         audiosyncmodule_status,
         METH_NOARGS,
-        "Returns the current job's status as a string"
+        "Returns the current job's status as a string. Thread-safe."
+    },
+    {
+        "setup",
+        audiosyncmodule_setup,
+        METH_VARARGS,
+        "Attempts to initialize PulseAudio to record more easily the audio"
+        " directly from the music player stream. Not thread-safe."
     },
     {NULL, NULL, 0, NULL}
 };
@@ -113,4 +129,18 @@ PyObject *audiosyncmodule_status(PyObject *self, PyObject *args) {
     Py_END_ALLOW_THREADS
 
     return Py_BuildValue("s", str);
+}
+
+PyObject *audiosyncmodule_setup(PyObject *self, PyObject *args) {
+    char *name;
+    if (!PyArg_ParseTuple(args, "s", &name)) {
+        return NULL;
+    }
+
+    int ret;
+    Py_BEGIN_ALLOW_THREADS
+    ret = audiosync_setup();
+    Py_END_ALLOW_THREADS
+
+    return Py_BuildValue("O", ret == 0 ? Py_True : Py_False);
 }
