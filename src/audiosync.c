@@ -132,13 +132,15 @@ char *status_to_string(global_status_t status) {
 // It's possible that the setup fails, so it returns an integer which will
 // be zero on success, and negative on error.
 int audiosync_setup(char *stream_name) {
-    fprintf(stderr, "audiosync: setting up audiosync module\n");
+    log("setting up audiosync module");
     return pulseaudio_setup(stream_name);
 }
 
 // This function starts the algorithm. Only one audiosync thread can be
 // running at once.
 int audiosync_run(char *yt_title, long int *lag) {
+    debug_assert(global_status == IDLE_ST);
+
     global_status = RUNNING_ST;
     int ret = -1;
     // The audio data.
@@ -196,7 +198,7 @@ int audiosync_run(char *yt_title, long int *lag) {
     int success = 0;
     // The main loop iterates through all intervals until a valid result is
     // found.
-    fprintf(stderr, "audiosync: starting interval loop\n");
+    log("starting interval loop");
     for (size_t i = 0; i < N_INTERVALS; ++i) {
         // Waits for both threads to finish their interval.
         pthread_mutex_lock(&mutex);
@@ -212,8 +214,8 @@ int audiosync_run(char *yt_title, long int *lag) {
             goto finish;
         }
 
-        fprintf(stderr, "audiosync: next interval (%ld): cap=%ld down=%ld\n",
-                i, cap_args.len, down_args.len);
+        log("next interval (%ld): cap=%ld down=%ld", i, cap_args.len,
+            down_args.len);
 
         // Running the cross correlation algorithm and checking for errors.
         if (cross_correlation(source, sample, INTERV_SAMPLE[i], lag,
@@ -256,7 +258,7 @@ finish:
     if (source) fftw_free(source);
     // Resetting the global status.
     global_status = IDLE_ST;
-    fprintf(stderr, "audiosync: finished run\n");
+    log("finished run");
 
     return ret;
 }

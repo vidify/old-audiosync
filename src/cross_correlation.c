@@ -107,6 +107,10 @@ double pearson_coefficient(double *source_start, double *source_end,
 int cross_correlation(double *source, double *input_sample,
                       const size_t sample_len, long *lag,
                       double *coefficient) {
+    debug_assert(source);
+    debug_assert(input_sample);
+    debug_assert(source);
+
     double *sample = NULL;
     double *results = NULL;
     double complex *arr1 = NULL;
@@ -132,8 +136,7 @@ int cross_correlation(double *source, double *input_sample,
 
 #ifdef PLOT
     // Plotting the output with gnuplot
-    fprintf(stderr, "audiosync: Saving initial plot to '%ld_original.png'\n",
-            source_len);
+    log("Saving initial plot to '%ld_original.png'", source_len);
     FILE *gnuplot = popen("gnuplot", "w");
     fprintf(gnuplot, "set term 'png'\n");
     fprintf(gnuplot, "set output 'images/%ld_original.png'\n", source_len);
@@ -254,12 +257,11 @@ int cross_correlation(double *source, double *input_sample,
     // Checking that the resulting coefficient isn't NaN.
     if (*coefficient != *coefficient) goto finish;
 
-    fprintf(stderr, "audiosync: %ld frames of delay with a confidence of %f\n",
-            *lag, *coefficient);
+    log("%ld frames of delay with a confidence of %f", *lag, *coefficient);
 
 #ifdef PLOT
     // Plotting the output with gnuplot
-    fprintf(stderr, "audiosync: Saving plot to '%ld.png'\n", source_len);
+    log("Saving plot to '%ld.png'", source_len);
     gnuplot = popen("gnuplot", "w");
     fprintf(gnuplot, "set term 'png'\n");
     fprintf(gnuplot, "set output 'images/%ld.png'\n", source_len);

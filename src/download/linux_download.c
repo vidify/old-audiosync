@@ -22,7 +22,7 @@ void *download(void *arg) {
         goto finish;
     }
     if (get_audio_url(data->title, &url) < 0) {
-        fprintf(stderr, "audiosync: Could not obtain youtube url.\n");
+        log("Could not obtain youtube url");
         goto finish;
     }
 
@@ -52,12 +52,12 @@ int get_audio_url(char *title, char **url) {
     // Run the command and read the output
     FILE *fp = popen(command, "r");
     if (fp == NULL) {
-        fprintf(stderr, "audiosync: Failed to run youtube-dl command\n" );
+        log("Failed to run youtube-dl command");
         goto finish;
     }
     fscanf(fp, "%s", *url);
     pclose(fp);
-    fprintf(stderr, "audiosync: obtained youtube-dl URL\n");
+    log("obtained youtube-dl URL");
 
     ret = 0;
 

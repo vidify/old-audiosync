@@ -1,6 +1,7 @@
 #pragma once
 
 #include <stdlib.h>
+#include <assert.h>
 #include <pthread.h>
 
 // Information about the audio tracks. Both must have the same formats for
@@ -20,6 +21,24 @@
 
 // The minimum cross-correlation coefficient accepted.
 #define MIN_CONFIDENCE 0.95
+
+// Easily and consistently printing logs to stderr.
+// The ## notation will ignore __VA_ARGS__ if no extra arguments were passed
+// when calling the macro. This idiom will only work on gcc and clang.
+#define log(str, ...) fprintf(stderr, "audiosync: " str "\n", ##__VA_ARGS__)
+
+// Assertion that only takes place in debug mode. It helps prevent errors,
+// while not affecting performance in a release.
+#ifdef DEBUG
+# define debug_assert(x) assert(x)
+#else
+# define debug_assert(x) do {} while(0)
+#endif
+
+// Easily ignoring warnings about unused variables. Some functions are
+// callbacks, meaning that the parameters are required, but not all of them
+// have to be used obligatorily.
+#define UNUSED(x) (void)(x)
 
 
 // Struct used to pass the parameters to the threads.

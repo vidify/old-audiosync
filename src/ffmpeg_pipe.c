@@ -44,11 +44,11 @@ int ffmpeg_pipe(struct ffmpeg_data *data, char *args[]) {
 #endif
 
         // ffmpeg must be available on the path for exevp to work.
-        fprintf(stderr, "audiosync: running ffmpeg command\n");
+        log("running ffmpeg command");
         execvp("ffmpeg", args);
 
         // If this part of the code is executed, it means that execvp failed.
-        fprintf(stderr, "audiosync: ffmpeg command failed\n");
+        log("ffmpeg command failed");
         audiosync_abort();
         goto finish;
     }
@@ -75,7 +75,7 @@ int ffmpeg_pipe(struct ffmpeg_data *data, char *args[]) {
 
         // End of file or the buffer won't be big enough for the next read.
         if (read_bytes == 0 || data->len + BUFSIZE >= data->total_len) {
-            fprintf(stderr, "audiosync: finished ffmpeg loop\n");
+            log("finished ffmpeg loop");
             break;
         }
 
@@ -91,14 +91,14 @@ int ffmpeg_pipe(struct ffmpeg_data *data, char *args[]) {
         // should end (accessing it atomically).
         switch (audiosync_status()) {
         case ABORT_ST:
-            fprintf(stderr, "audiosync: read ABORT_ST, quitting...\n");
+            log("read ABORT_ST, quitting...");
             kill(pid, SIGKILL);
             wait(NULL);
             goto finish;
         case PAUSED_ST:
             // Suspending the ffmpeg process with a SIGSTOP until the
             // global status is changed from PAUSED_ST.
-            fprintf(stderr, "audiosync: stopping ffmpeg\n");
+            log("stopping ffmpeg");
             kill(pid, SIGSTOP);
 
             pthread_mutex_lock(&mutex);
@@ -110,14 +110,13 @@ int ffmpeg_pipe(struct ffmpeg_data *data, char *args[]) {
             // After being woken up, checking if the ffmpeg process
             // should continue or stop.
             if (global_status == ABORT_ST) {
-                fprintf(stderr, "audiosync: read ABORT_ST after pause,"
-                        " quitting...\n");
+                log("read ABORT_ST after pause, quitting...");
                 kill(pid, SIGKILL);
                 wait(NULL);
                 goto finish;
             }
 
-            fprintf(stderr, "audiosync: resuming ffmpeg\n");
+            log("resuming ffmpeg");
             kill(pid, SIGCONT);
             break;
         default:
