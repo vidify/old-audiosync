@@ -8,7 +8,7 @@ args = ['-fno-finite-math-only']
 # defines.append(('DEBUG', '1'))
 
 audiosync = Extension(
-    'vidify_audiosync',
+    'audiosync',
     define_macros = defines,
     extra_compile_args = args,
     include_dirs = ['include'],

@@ -2,8 +2,8 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <math.h>
-#include <vidify_audiosync/audiosync.h>
-#include <vidify_audiosync/cross_correlation.h>
+#include <audiosync/audiosync.h>
+#include <audiosync/cross_correlation.h>
 
 
 // Testing the Pearson Correlation Coefficient. These results can be compared

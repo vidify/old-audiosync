@@ -3,9 +3,9 @@
 #include <stdlib.h>
 #include <pthread.h>
 #include <string.h>
-#include <vidify_audiosync/audiosync.h>
-#include <vidify_audiosync/ffmpeg_pipe.h>
-#include <vidify_audiosync/download/linux_download.h>
+#include <audiosync/audiosync.h>
+#include <audiosync/ffmpeg_pipe.h>
+#include <audiosync/download/linux_download.h>
 
 #define MAX_LONG_URL 4086
 #define MAX_LONG_COMMAND 4086

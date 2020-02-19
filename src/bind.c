@@ -7,7 +7,7 @@
 
 #define PY_SSIZE_T_CLEAN
 #include <Python.h>
-#include <vidify_audiosync/audiosync.h>
+#include <audiosync/audiosync.h>
 
 
 PyObject *audiosyncmodule_pause(PyObject *self, PyObject *args);
@@ -64,7 +64,7 @@ static PyMethodDef VidifyAudiosyncMethods[] = {
 
 static struct PyModuleDef vidify_audiosync = {
     PyModuleDef_HEAD_INIT,
-    "vidify_audiosync",
+    "audiosync",
     "The audio synchronization module for vidify.",
     -1,
     VidifyAudiosyncMethods

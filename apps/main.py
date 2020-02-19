@@ -1,5 +1,5 @@
 import sys
-import vidify_audiosync as audiosync
+import audiosync
 
 
 # Checking that the script was used correctly

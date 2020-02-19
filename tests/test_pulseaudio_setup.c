@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <assert.h>
-#include <vidify_audiosync/audiosync.h>
-#include <vidify_audiosync/capture/linux_capture.h>
+#include <audiosync/audiosync.h>
+#include <audiosync/capture/linux_capture.h>
 
 
 int main(int argc, char *argv[]) {

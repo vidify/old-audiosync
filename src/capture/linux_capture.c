@@ -6,9 +6,9 @@
 #include <pulse/pulseaudio.h>
 #include <pulse/simple.h>
 #include <pulse/error.h>
-#include <vidify_audiosync/audiosync.h>
-#include <vidify_audiosync/ffmpeg_pipe.h>
-#include <vidify_audiosync/capture/linux_capture.h>
+#include <audiosync/audiosync.h>
+#include <audiosync/ffmpeg_pipe.h>
+#include <audiosync/capture/linux_capture.h>
 
 #define SINK_NAME "audiosync"
 #define MAX_NUM_SINKS 16

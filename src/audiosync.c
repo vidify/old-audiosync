@@ -26,10 +26,10 @@
 #include <math.h>
 #include <fftw3.h>
 #include <string.h>
-#include <vidify_audiosync/audiosync.h>
-#include <vidify_audiosync/cross_correlation.h>
-#include <vidify_audiosync/capture/linux_capture.h>
-#include <vidify_audiosync/download/linux_download.h>
+#include <audiosync/audiosync.h>
+#include <audiosync/cross_correlation.h>
+#include <audiosync/capture/linux_capture.h>
+#include <audiosync/download/linux_download.h>
 
 
 // Defining the global variables from audiosync.h

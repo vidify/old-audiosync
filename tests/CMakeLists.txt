@@ -1,7 +1,7 @@
 # The tests binaries
 set(
     TEST_DEPS
-    vidify_audiosync
+    audiosync
     fftw3
     m
     pthread

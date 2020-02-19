@@ -8,7 +8,7 @@
 #include <string.h>
 #include <complex.h>
 #include <fftw3.h>
-#include <vidify_audiosync/audiosync.h>
+#include <audiosync/audiosync.h>
 
 
 // The cross-correlation mutex.

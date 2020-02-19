@@ -7,7 +7,7 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/wait.h>
-#include <vidify_audiosync/audiosync.h>
+#include <audiosync/audiosync.h>
 
 #define PIPE_RD 0
 #define PIPE_WR 1
