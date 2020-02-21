@@ -15,6 +15,7 @@ addons:
         - libpulse-dev
         - gnuplot
         # To install the python bindings
+        - python3
         - python3-pip
         - python3-setuptools
 

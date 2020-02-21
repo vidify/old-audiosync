@@ -43,6 +43,6 @@ setup(
     ],
     keywords='audio synchronization cross-correlation pearson coefficient fft'
     ' signal-processing ffmpeg youtube-dl fftw',
-    python_requires='>=3.6',
+    python_requires='>=3.5',
     ext_modules = [audiosync]
 )

@@ -16,7 +16,7 @@ function (enable_execution file)
 endfunction()
 
 # Checking if the python module is installed
-execute_process(COMMAND python -c "import audiosync"
+execute_process(COMMAND python3 -c "import audiosync"
                 RESULT_VARIABLE ret
                 OUTPUT_QUIET ERROR_QUIET)
 if (ret EQUAL "0")
