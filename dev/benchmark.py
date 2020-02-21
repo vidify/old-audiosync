@@ -11,7 +11,7 @@ import time
 from tekore import util, Spotify
 from tekore.util import prompt_for_user_token
 from tekore.scope import scopes
-import vidify_audiosync as audiosync
+import audiosync
 
 
 # Lots of different songs. Some should be really easy to synchronize, while
