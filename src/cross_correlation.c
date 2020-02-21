@@ -25,6 +25,7 @@ struct fftw_data {
 static void *fft(void *arg) {
     // Getting the parameters passed to this thread
     struct fftw_data *data = arg;
+    debug_assert(data); debug_assert(data->real); debug_assert(data->cpx);
 
     // Initializing the plan: the only thread-safe call in FFTW is
     // fftw_execute, so the plan has to be created and destroyed with a lock.
@@ -44,6 +45,28 @@ static void *fft(void *arg) {
 }
 
 
+// Returns the index of the absolute maximum value in an array of doubles
+// of length `len`.
+//
+// Its length must be greater than zero to work correctly.
+static size_t max_abs_index(double *arr, size_t len) {
+    debug_assert(arr); debug_assert(len > 0);
+
+    double abs_val;
+    double max_val = arr[0];
+    size_t max_ind = 0;
+    for (size_t i = 1; i < len; i++) {
+        abs_val = fabs(arr[i]);
+        if (abs_val > max_val) {
+            max_val = abs_val;
+            max_ind = i;
+        }
+    }
+
+    return max_ind;
+}
+
+
 // Calculating the Pearson Correlation Coefficient between `source` and
 // `sample` between two pointers, applying the formula:
 // https://en.wikipedia.org/wiki/Pearson_correlation_coefficient#For_a_sample
@@ -51,6 +74,11 @@ static void *fft(void *arg) {
 // passed by parameter are correctly allocated to the indicated size.
 double pearson_coefficient(double *source_start, double *source_end,
                            double *sample_start, double *sample_end) {
+    debug_assert(source_start); debug_assert(source_end);
+    debug_assert(source_end - source_start > 0);
+    debug_assert(sample_start); debug_assert(sample_end);
+    debug_assert(sample_end - sample_start > 0);
+
     // 1. The average for both datasets.
     double sum1 = 0.0;
     double sum2 = 0.0;
@@ -107,9 +135,9 @@ double pearson_coefficient(double *source_start, double *source_end,
 int cross_correlation(double *source, double *input_sample,
                       const size_t sample_len, long *lag,
                       double *coefficient) {
-    debug_assert(source);
-    debug_assert(input_sample);
-    debug_assert(source);
+    debug_assert(source); debug_assert(input_sample);
+    debug_assert(lag); debug_assert(coefficient);
+    debug_assert(sample_len > 0);
 
     double *sample = NULL;
     double *results = NULL;
@@ -152,8 +180,7 @@ int cross_correlation(double *source, double *input_sample,
     pclose(gnuplot);
 #endif
 
-    // Getting the complex results from both FFT. The output length for the
-    // complex numbers is n/2+1.
+    // Firt allocating the arrays where the results will be saved at.
     const size_t cpx_len = (source_len / 2) + 1;
     arr1 = fftw_alloc_complex(cpx_len);
     if (arr1 == NULL) {
@@ -171,7 +198,7 @@ int cross_correlation(double *source, double *input_sample,
         goto finish;
     }
 
-    // Initializing the threads and running them
+    // Initializing the threads and starting them.
     pthread_t fft1_th, fft2_th;
     struct fftw_data fft1_data = {
         .real = source,
@@ -210,17 +237,8 @@ int cross_correlation(double *source, double *input_sample,
     fftw_execute(p);
     fftw_destroy_plan(p);
 
-    // Getting the results: the index of the maximum value is the desired lag.
-    double abs_result;
-    double max = results[0];
-    *lag = 0;
-    for (size_t i = 1; i < source_len; ++i) {
-        abs_result = fabs(results[i]);
-        if (abs_result > max) {
-            max = abs_result;
-            *lag = i;
-        }
-    }
+    // The index of the maximum value is the desired lag.
+    *lag = max_abs_index(results, source_len);
 
     // If the lag is greater than the input array itself, it means that the
     // sample displacement has to be performed is to the left, and otherwise

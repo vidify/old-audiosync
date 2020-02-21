@@ -17,6 +17,10 @@
 // Executes the ffmpeg command in the arguments and pipes its data into the
 // provided array.
 int ffmpeg_pipe(struct ffmpeg_data *data, char *args[]) {
+    debug_assert(args); debug_assert(data); debug_assert(data->title);
+    debug_assert(data->buf); debug_assert(data->intervals);
+    debug_assert(data->intervals[data->n_intervals-1] == data->total_len);
+
     int ret = -1;
     int wav_pipe[2];
     if (pipe(wav_pipe) < 0) {

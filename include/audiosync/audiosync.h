@@ -50,6 +50,7 @@ struct ffmpeg_data {
     const size_t *intervals;
     const size_t n_intervals;
 };
+
 // The global status variable.
 typedef enum {
     IDLE_ST,     // Audiosync is doing nothing, it's not running

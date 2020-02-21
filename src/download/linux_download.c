@@ -41,6 +41,8 @@ finish:
 
 // Obtains the audio direct link with Youtube-dl.
 int get_audio_url(char *title, char **url) {
+    debug_assert(title); debug_assert(url);
+
     int ret = -1;
 
     // Creating the full command

@@ -139,6 +139,7 @@ int audiosync_setup(char *stream_name) {
 // This function starts the algorithm. Only one audiosync thread can be
 // running at once.
 int audiosync_run(char *yt_title, long int *lag) {
+    debug_assert(yt_title); debug_assert(lag);
     debug_assert(global_status == IDLE_ST);
 
     global_status = RUNNING_ST;
