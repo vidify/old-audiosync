@@ -1,8 +1,8 @@
 from setuptools import setup, Extension
 
 
-defines = []
 args = ['-fno-finite-math-only']
+defines = []
 
 # "Debug mode" flags by uncommenting them
 # defines.append(('DEBUG', '1'))

@@ -194,14 +194,12 @@ int audiosync_run(char *yt_title, long int *lag) {
         goto finish;
     }
 
-    // A boolean to know after the main loop that the algorithm obtained a
-    // valid result.
-    int success = 0;
     // The main loop iterates through all intervals until a valid result is
     // found.
     log("starting interval loop");
-    for (size_t i = 0; i < N_INTERVALS; ++i) {
-        // Waits for both threads to finish their interval.
+    for (size_t i = 0; i < N_INTERVALS; i++) {
+        // Waits for both threads to finish their interval, or until another
+        // thread sends an abort signal.
         pthread_mutex_lock(&mutex);
         while ((cap_args.len < INTERV_SAMPLE[i]
                || down_args.len < INTERV_SOURCE[i])
@@ -210,9 +208,9 @@ int audiosync_run(char *yt_title, long int *lag) {
         }
         pthread_mutex_unlock(&mutex);
 
-        // Checking if audiosync_abort() was called.
+        // Checking if audiosync_abort() was called after waiting.
         if (global_status == ABORT_ST) {
-            goto finish;
+            break;
         }
 
         log("next interval (%ld): cap=%ld down=%ld", i, cap_args.len,
@@ -225,39 +223,34 @@ int audiosync_run(char *yt_title, long int *lag) {
         }
 
         // If the returned confidence is higher or equal than the minimum
-        // required, the program ends with the obtained result.
-        *lag = round((double) (*lag) * FRAMES_TO_MS);
+        // required, the program ends with the obtained result, and returns
+        // zero to indicate that it succeeded.
         if (confidence >= MIN_CONFIDENCE) {
-            // Indicating the threads to finish, and waiting for them to
-            // finish safely.
-            success = 1;
-            audiosync_abort();
-            if (pthread_join(cap_th, NULL) < 0) {
-                perror("audiosync: pthread_join for cap_th failed");
-                goto finish;
-            }
-            if (pthread_join(down_th, NULL) < 0) {
-                perror("audiosync: pthread_join for down_th failed");
-                goto finish;
-            }
+            *lag = round((double) (*lag) * FRAMES_TO_MS);
+            ret = 0;
             break;
         }
     }
 
-    // If the success flag is still at zero, it means that no result from
-    // the cross_correlation function returned a valid value.
-    if (!success) {
+finish:
+    // Signaling the rest of the threads to finish.
+    audiosync_abort();
+
+    // Freeing the main resources used.
+    if (sample) free(sample);
+    if (source) fftw_free(source);
+
+    // Waiting for the other threads to finish.
+    if (pthread_join(cap_th, NULL) < 0) {
+        perror("audiosync: pthread_join for cap_th failed");
+        goto finish;
+    }
+    if (pthread_join(down_th, NULL) < 0) {
+        perror("audiosync: pthread_join for down_th failed");
         goto finish;
     }
 
-    // If it got here, it means that no errors happened and that a valid
-    // lag was found.
-    ret = 0;
-
-finish:
-    if (sample) free(sample);
-    if (source) fftw_free(source);
-    // Resetting the global status.
+    // Resetting the global status at the end.
     global_status = IDLE_ST;
     log("finished run");
 

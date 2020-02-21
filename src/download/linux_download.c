@@ -7,24 +7,28 @@
 #include <audiosync/ffmpeg_pipe.h>
 #include <audiosync/download/linux_download.h>
 
-#define MAX_LONG_URL 4086
+#define MAX_LONG_URL 8172
 #define MAX_LONG_COMMAND 4086
 
 
 void *download(void *arg) {
     struct ffmpeg_data *data = arg;
+    log("starting download thread");
 
     // Obtaining the youtube-dl direct URL to download.
     char *url = NULL;
     url = malloc(sizeof(*url) * MAX_LONG_URL);
     if (url == NULL) {
-        perror("audiosync: url malloc failed");
+        perror("url malloc failed");
+        audiosync_abort();
         goto finish;
     }
     if (get_audio_url(data->title, &url) < 0) {
-        log("Could not obtain youtube url");
+        log("could not obtain youtube url");
+        audiosync_abort();
         goto finish;
     }
+    log("obtained youtube-dl URL for download");
 
     // Finally downloading the track data with ffmpeg.
     char *args[] = {
@@ -40,29 +44,28 @@ finish:
 
 
 // Obtains the audio direct link with Youtube-dl.
+//
+// Returns 0 on exit, or -1 on error.
 int get_audio_url(char *title, char **url) {
     debug_assert(title); debug_assert(url);
 
-    int ret = -1;
-
     // Creating the full command
     char command[MAX_LONG_COMMAND];
-    strcpy(command, "youtube-dl -g -f bestaudio ytsearch:\"");
+    strcpy(command, "youtube-dl -g -f bestaudio 'ytsearch:");
     strcat(command, title);
-    strcat(command, "\"");
+    strcat(command, "'");
 
     // Run the command and read the output
     FILE *fp = popen(command, "r");
+    // Failed to run
     if (fp == NULL) {
-        log("Failed to run youtube-dl command");
-        goto finish;
+        return -1;
     }
     fscanf(fp, "%s", *url);
-    pclose(fp);
-    log("obtained youtube-dl URL");
+    // Returned an error code
+    if (pclose(fp) != 0) {
+        return -1;
+    }
 
-    ret = 0;
-
-finish:
-    return ret;
+    return 0;
 }

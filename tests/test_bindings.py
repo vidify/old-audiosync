@@ -20,14 +20,22 @@ th1.start()
 
 print(">> Pausing thread")
 audiosync.pause()
+status = audiosync.status()
+print(f">> Current status is '{status}'")
+assert(status == 'paused')
 
 print(">> Resuming thread")
 audiosync.resume()
-
-print(">> Current status is", audiosync.status())
+status = audiosync.status()
+print(f">> Current status is '{status}'")
+assert(status == 'running')
 
 print(">> Aborting thread")
 audiosync.abort()
+th1.join()
+status = audiosync.status()
+print(f">> Current status is '{status}'")
+assert(status == 'idle')
 
 # Testing that both threads won't overlap
 print(">> Launching second thread")
@@ -36,6 +44,4 @@ th2.start()
 
 print(">> Aborting second thread")
 audiosync.abort()
-
-th1.join()
 th2.join()

@@ -7,11 +7,16 @@ addons:
     sources:
         - sourceline: 'ppa:duggan/bats'
     packages:
-        - libpulse-dev
+        # Required dependencies
         - pulseaudio
         - libfftw3-dev
         - ffmpeg
+        # Optional dependencies
+        - libpulse-dev
         - gnuplot
+        # To install the python bindings
+        - python3-pip
+        - python3-setuptools
 
 script:
     # Installing the python extension

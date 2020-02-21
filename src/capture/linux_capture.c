@@ -340,11 +340,13 @@ error:
 
 void *capture(void *arg) {
     struct ffmpeg_data *data = arg;
+    log("starting capture thread");
 
     // Finally starting to record the audio with ffmpeg. If the setup function
     // was called and it was successful, the audiosync monitor is used.
     // Otherwise, the default monitor will record the entire device audio.
-    log("using %s", use_default ? "default monitor" : "custom monitor");
+    log("using %s for capture",
+        use_default ? "default monitor" : "custom monitor");
     char *args[] = {
         "ffmpeg", "-y", "-to", MAX_SECONDS_STR, "-f", "pulse", "-i",
         use_default ? "default" : (SINK_NAME ".monitor"), "-ac",

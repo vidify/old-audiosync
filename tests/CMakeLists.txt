@@ -20,10 +20,10 @@ execute_process(COMMAND python -c "import audiosync"
                 RESULT_VARIABLE ret
                 OUTPUT_QUIET ERROR_QUIET)
 if (ret EQUAL "0")
-    message(STATUS "Python bindings testing enabled")
+    message(STATUS "Python tests enabled")
     set(PYTHON_MODULE_INSTALLED true)
 else ()
-    message(STATUS "Skipping python bindings tests")
+    message(STATUS "Skipping python tests")
 endif ()
 
 # Adding all the tests
