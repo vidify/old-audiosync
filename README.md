@@ -1,27 +1,27 @@
-# Vidify Audiosync
-[![Build Status](https://travis-ci.com/vidify/audiosync.svg?branch=master)](https://travis-ci.com/vidify/audiosync)
+<div align="center">
 
-[![example](images/demo.gif)](images/demo.mp4)
+<h1>Vidify Audiosync</h1>
+<span>Extension for <a href="https://github.com/vidify/vidify">Vidify</a> to <b>synchronize</b> the audio from <b>YouTube</b> and what's <b>playing on your computer</b>.</span>
 
-This module is an extension for [vidify](https://github.com/vidify/vidify). Its purpose is to synchronize the audio from 2 different sources: YouTube, and the currently playing audio on your computer. It's currently under development and only works on Linux (and macOS, but it's untested). In the future, Windows support will be added. Also, it's a separate module because it's an optional feature.
+<a href="https://travis-ci.com/vidify/audiosync"><img alt="Build Status" src="https://travis-ci.com/vidify/audiosync.svg?branch=master"></a> <a href="https://pypi.org/project/vidify-audiosync/"><img alt="PyPi version" src="https://img.shields.io/pypi/v/vidify-audiosync"></a> <a href="https://aur.archlinux.org/packages/vidify-audiosync/"><img alt="AUR version" src="https://img.shields.io/aur/version/vidify-audiosync"></a>
 
+<a href="images/demo.mp4"><img alt="example" src="images/demo.gif"></img></a>
+
+</div>
 
 ## Installation
-The requirements are:
+Audiosync is currently only available on Linux. The requirements are:
 
 * [pulseaudio](https://www.freedesktop.org/wiki/Software/PulseAudio/) and libpulse.
-* [ffmpeg](https://www.ffmpeg.org/) (must be available in the user's path): a software suite to both download the song and record the system's audio. This dependency might be dropped in the future for `libav`, which is ffmpeg's main library and provides more control. Currently, the audio is obtained from a ffmpeg's pipe.
+* [ffmpeg](https://www.ffmpeg.org/) (must be available in the user's path): a software suite to both download the song and record the system's audio.
 * [FFTW](http://www.fftw.org/): the fastest library to compute the discrete Fourier Transform (DFT), which is the most resource-heavy calculation made in this module.
 
-You can install it with pip (preferably inside a [virtual environment](https://docs.python.org/3/tutorial/venv.html)):
+You can install the module with pip: `pip3 install vidify_audiosync --user`.
 
-`pip3 install .`
-
-In the future, it will be available on the AUR and more sources.
+It's also available on the AUR for Arch Linux users as [`vidify-audiosync`](https://aur.archlinux.org/packages/vidify-audiosync/).
 
 
 ## Usage
-
 The main function is `int audiosync_run(char* title, long *lag)`, which returns the displacement between the two audio sources (positive or negative). `title` is the full YouTube link that the recorded audio will be compared to. After this function has been called, its progress can be monitored and controlled with the following self-explainatory functions: `global_status_t audiosync_status()`, `void audiosync_resume()`, `void audiosync_pause()` and `void audiosync_abort()`. This interface is also available from the Python bindings, which have the same names, but inside a module (for example `audiosync.run()`).
 
 There are 2 apps to try:
@@ -71,8 +71,8 @@ Another important part of the module is the concurrency. Both audio tracks have 
 
 To keep this module somewhat real-time, the algorithm is run in intervals. After one of the threads has successfully obtained the data in the current interval, it sends a signal to the main thread, which is waiting until both threads are done with it. When both signals are recevied, the algorithm is run. If the results obtained are good enough (they have a confidence higher than `MIN_CONFIDENCE`), the main thread sets a variable that indicates the rest of the threads to stop, so that it can return the obtained value. Otherwise, it continues to the next interval.
 
-## Developing
 
+## Developing
 You can run the project's tests with:
 
 ```
