@@ -72,9 +72,6 @@ const size_t LEN_SOURCE = 2 * 30 * SAMPLE_RATE;
 // The module can be controlled externally with these basic functions. They
 // expose the global status variable, which will be received from the threads
 // accordingly. These functions atomically read or write the global status.
-// They should only be called after audiosync_run(), since it initializes
-// the mutex and more. As they lock and unlock the mutex, calling any of the
-// following functions will block the module.
 void audiosync_abort() {
     pthread_mutex_lock(&mutex);
     global_status = ABORT_ST;
@@ -124,8 +121,9 @@ char *status_to_string(global_status_t status) {
     }
 }
 
-// The setup function has to be called before anything else. It will
-// initialize the PulseAudio sink to later record the media player output.
+// The setup function is optional. It will initialize the PulseAudio sink to
+// later record the media player output directly, rather than the entire
+// desktop audio.
 // Thus, the `stream_name` variable indicates the name of the music player
 // being used. For example, "Spotify".
 //
@@ -136,9 +134,20 @@ int audiosync_setup(char *stream_name) {
     return pulseaudio_setup(stream_name);
 }
 
+// Main function to start the audio synchronization algorithm. It will return
+// 0 in case of success, or -1 otherwise. `yt_title` is the name of the song
+// currently playing on the computer. The obtained lag will be returned to
+// the variable `lag` points to.
+//
+// It will start two threads: one to download the audio, and another one to
+// record it. These threads will signal this main function once they have
+// finished an interval, so that the audio synchronization algorithm can
+// be ran with the current data. This will be done until an acceptable
+// result is obtained, or until all intervals are finished.
+//
 // This function starts the algorithm. Only one audiosync thread can be
 // running at once.
-int audiosync_run(char *yt_title, long int *lag) {
+int audiosync_run(char *yt_title, long *lag) {
     debug_assert(yt_title); debug_assert(lag);
     debug_assert(global_status == IDLE_ST);
 

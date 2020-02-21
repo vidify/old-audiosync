@@ -1,5 +1,5 @@
 #ifdef PLOT
-# define _GNU_SOURCE  // Debug mode uses popen
+# define _GNU_SOURCE  // popen() is used for plotting with gnuplot
 #endif
 #include <stdio.h>
 #include <stdlib.h>
@@ -11,7 +11,7 @@
 #include <audiosync/audiosync.h>
 
 
-// The cross-correlation mutex.
+// The global cross-correlation mutex.
 static pthread_mutex_t cc_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 // Data structure used to pass parameters to concurrent FFTW-related functions.
@@ -20,6 +20,7 @@ struct fftw_data {
     double complex *cpx;
     size_t len;
 };
+
 
 // Concurrent implementation of the Fast Fourier Transform using FFTW.
 static void *fft(void *arg) {
@@ -44,7 +45,6 @@ static void *fft(void *arg) {
     pthread_exit(NULL);
 }
 
-
 // Returns the index of the absolute maximum value in an array of doubles
 // of length `len`.
 //
@@ -66,12 +66,11 @@ static size_t max_abs_index(double *arr, size_t len) {
     return max_ind;
 }
 
-
 // Calculating the Pearson Correlation Coefficient between `source` and
 // `sample` between two pointers, applying the formula:
 // https://en.wikipedia.org/wiki/Pearson_correlation_coefficient#For_a_sample
-// This function will only work correctly if end - start != 0, and the arrays
-// passed by parameter are correctly allocated to the indicated size.
+//
+// This function will only work correctly if end - start != 0.
 double pearson_coefficient(double *source_start, double *source_end,
                            double *sample_start, double *sample_end) {
     debug_assert(source_start); debug_assert(source_end);
@@ -116,7 +115,6 @@ double pearson_coefficient(double *source_start, double *source_end,
     return diffprod / sqrt(diff1_squared * diff2_squared);
 }
 
-
 // Calculating the cross-correlation between two signals `a` and `b`:
 //     xcross = ifft(fft(a) * conj(fft(b)))
 //
@@ -124,14 +122,14 @@ double pearson_coefficient(double *source_start, double *source_end,
 // will be zero-padded to length 2N-1, which is needed to calculate the
 // circular cross-correlation.
 //
-// FFTW won't overwrite the source if FFTW_ESTIMATE is used, so the source
-// should be initialized with fftw_alloc_real so that the data is aligned
-// and thus, the Fourier Transforms will be faster.
-//
 // Returns the lag in frames the sample has over the source, with a confidence
 // between -1 and 1.
 //
-// In case of error, the function returns -1.
+// In case of error, the function returns -1. Otherwise, zero.
+//
+// Note: FFTW won't overwrite the source if FFTW_ESTIMATE is used, meaning
+// that the source can be initialized with fftw_alloc_real so that it's also
+// aligned and thus, the Fourier Transforms will be faster.
 int cross_correlation(double *source, double *input_sample,
                       const size_t sample_len, long *lag,
                       double *coefficient) {
@@ -144,12 +142,14 @@ int cross_correlation(double *source, double *input_sample,
     double complex *arr1 = NULL;
     double complex *arr2 = NULL;
     const size_t source_len = sample_len * 2;
+    const size_t cpx_len = (source_len / 2) + 1;
     int ret = -1;
 
     // Only the sample needs to be zero-padded, since the cross correlation
     // will be circular, and only one of the inputs is shifted.
     // FFTW doesn't overwrite the source when FFTW_ESTIMATE is used, so the
     // sample doesn't have to be copied.
+    //
     // Note: fftw_alloc_* uses fftw_malloc, which is an equivalent of running
     // malloc + memalign. This means that it may also return NULL in case of
     // error.
@@ -180,8 +180,7 @@ int cross_correlation(double *source, double *input_sample,
     pclose(gnuplot);
 #endif
 
-    // Firt allocating the arrays where the results will be saved at.
-    const size_t cpx_len = (source_len / 2) + 1;
+    // First allocating the arrays where the results will be saved at.
     arr1 = fftw_alloc_complex(cpx_len);
     if (arr1 == NULL) {
         perror("audiosync: arr1 fftw_alloc_real failed");
@@ -227,7 +226,7 @@ int cross_correlation(double *source, double *input_sample,
         goto finish;
     }
 
-    // Product of fft1 * conj(fft2), saved in the first array.
+    // Product of fft1 and conj(fft2), saved in the first array.
     for (size_t i = 0; i < cpx_len; ++i)
         arr1[i] *= conj(arr2[i]);
 

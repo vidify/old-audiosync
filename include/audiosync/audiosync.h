@@ -6,18 +6,19 @@
 
 // Information about the audio tracks. Both must have the same formats for
 // the analysis to work.
+//
+// The _STR macros are also required to save time when using them in a string,
+// so it must be the same as the original value.
 #define NUM_CHANNELS 1
 #define NUM_CHANNELS_STR "1"
 #define SAMPLE_RATE 48000
 #define SAMPLE_RATE_STR "48000"
-// Conversion factor from the WAV samples with the used sample rate to
+// The value of the last interval in audiosync.c in seconds.
+#define MAX_SECONDS_STR "30"
+
+// Conversion factor from WAV samples with the defined sample rate to
 // milliseconds.
 #define FRAMES_TO_MS (1000.0 / (double) SAMPLE_RATE)
-
-// The value of the last interval in audiosync.c in seconds. This avoids
-// having to run an itoa() for intervals[n_intervals-1] and simplifies it a
-// bit.
-#define MAX_SECONDS_STR "30"
 
 // The minimum cross-correlation coefficient accepted.
 #define MIN_CONFIDENCE 0.95
@@ -35,23 +36,24 @@
 # define debug_assert(x) do {} while(0)
 #endif
 
-// Easily ignoring warnings about unused variables. Some functions are
-// callbacks, meaning that the parameters are required, but not all of them
-// have to be used obligatorily.
+// Easily ignoring warnings about unused variables. Some functions in this
+// module are callbacks, meaning that the parameters are required, but not all
+// of them have to be used obligatorily. This is useful for these cases.
 #define UNUSED(x) (void)(x)
 
 
-// Struct used to pass the parameters to the threads.
+// Structure used to pass the parameters to the threads.
 struct ffmpeg_data {
-    char *title;
-    double *buf;
-    size_t total_len;
-    size_t len;
-    const size_t *intervals;
-    const size_t n_intervals;
+    char *title;               // Only used to download the audio
+    double *buf;               // Buffer with the obtained data
+    size_t total_len;          // Maximum length of the buffer
+    size_t len;                // Current buffer's length
+    const size_t *intervals;   // Intervals in which the data will be obtained
+    const size_t n_intervals;  // Maximum number of intervals
 };
 
-// The global status variable.
+// The global status variable to communicate between threads and control
+// audiosync externally.
 typedef enum {
     IDLE_ST,     // Audiosync is doing nothing, it's not running
     RUNNING_ST,  // Audiosync is running
@@ -59,9 +61,10 @@ typedef enum {
     ABORT_ST     // Audiosync is stopping its algorithm completely
 } global_status_t;
 extern volatile global_status_t global_status;
+// Converting a status enum value to a string.
+extern char *status_to_string(global_status_t status);
 
-// The global mutex and condition variables. They will be initialized from
-// the main function.
+// The global mutex and condition variables to synchronize between threads.
 extern pthread_mutex_t mutex;
 // Condition used to know when either thread has finished one of their
 // intervals.
@@ -70,10 +73,35 @@ extern pthread_cond_t interval_done;
 // with audiosync_pause().
 extern pthread_cond_t read_continue;
 
-extern global_status_t audiosync_status();
-extern char *status_to_string(global_status_t status);
+// The module can be controlled externally with these basic functions. They
+// expose the global status variable, which will be received from the threads
+// accordingly. These functions atomically read or write the global status.
 extern void audiosync_abort();
 extern void audiosync_pause();
 extern void audiosync_resume();
+extern global_status_t audiosync_status();
+
+// The setup function is optional. It will initialize the PulseAudio sink to
+// later record the media player output directly, rather than the entire
+// desktop audio.
+// Thus, the `stream_name` variable indicates the name of the music player
+// being used. For example, "Spotify".
+//
+// It's possible that the setup fails, so it returns an integer which will
+// be zero on success, and negative on error.
 extern int audiosync_setup(char *stream_name);
+
+// Main function to start the audio synchronization algorithm. It will return
+// 0 in case of success, or -1 otherwise. `yt_title` is the name of the song
+// currently playing on the computer. The obtained lag will be returned to
+// the variable `lag` points to.
+//
+// It will start two threads: one to download the audio, and another one to
+// record it. These threads will signal this main function once they have
+// finished an interval, so that the audio synchronization algorithm can
+// be ran with the current data. This will be done until an acceptable
+// result is obtained, or until all intervals are finished.
+//
+// This function starts the algorithm. Only one audiosync thread can be
+// running at once.
 extern int audiosync_run(char *yt_title, long int *lag);

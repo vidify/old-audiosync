@@ -43,8 +43,9 @@ typedef enum {
 // The stream name is a global so that it can be accessed inside callback
 // functions. It will be initialized when pulseaudio_setup is called.
 static char stream_name[MAX_LONG_NAME];
+
 // Variable that acts as a boolean to indicate if the setup function was
-// called and worked successfully.
+// called previously and worked successfully.
 static int use_default = 1;
 
 
@@ -124,7 +125,19 @@ static void find_stream_cb(pa_context *c, const pa_sink_input_info *i, int eol, 
     }
 }
 
-// Pulseaudio asynchronously handles all the requests, so this mainloop
+// Creates a new dedicated sink for recording within this module. It's
+// useful for complex PulseAudio setups, and avoids recording the entire
+// desktop audio. Only the indicated stream will be recorded, where
+// `stream_name` is the `application.name` attribute of its pulseaudio's
+// stream.
+//
+// If this function isn't called, the capture function will use the desktop
+// audio instead, so it's completely optional, although recommended.
+//
+// This function will return 0 if it ran successfully, or -1 in case something
+// went wrong.
+//
+// Note: PulseAudio asynchronously handles all the requests, so this mainloop
 // structure is needed to handle the states one by one. See the
 // loop_state_t enum for a description of each step followed.
 int pulseaudio_setup(char *name) {
@@ -338,6 +351,11 @@ error:
     return ret;
 }
 
+// Function used for the capture thread. It will start a new ffmpeg process
+// to record either the custom sink created with pulseaudio_setup, or the
+// entire desktop.
+//
+// In case of errors, it will signal the main thread to abort.
 void *capture(void *arg) {
     struct ffmpeg_data *data = arg;
     log("starting capture thread");

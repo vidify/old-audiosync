@@ -16,24 +16,29 @@
 
 // Executes the ffmpeg command in the arguments and pipes its data into the
 // provided array.
+//
+// It will send signals to the main thread as the intervals are being
+// finished, while also checking the current global status, or updating it in
+// case of errors.
+//
+// Returns -1 in case of error, or zero otherwise.
 int ffmpeg_pipe(struct ffmpeg_data *data, char *args[]) {
     debug_assert(args); debug_assert(data); debug_assert(data->title);
     debug_assert(data->buf); debug_assert(data->intervals);
     debug_assert(data->intervals[data->n_intervals-1] == data->total_len);
 
-    int ret = -1;
     int wav_pipe[2];
     if (pipe(wav_pipe) < 0) {
         perror("audiosync: pipe for wav_pipe failed");
         audiosync_abort();
-        goto finish;
+        return -1;
     }
 
     pid_t pid = fork();
     if (pid < 0) {
         perror("audiosync: fork in read_pipe failed");
         audiosync_abort();
-        goto finish;
+        return -1;
     } else if (pid == 0) {
         // Child process (ffmpeg), doesn't read the pipe.
         close(wav_pipe[PIPE_RD]);
@@ -54,7 +59,7 @@ int ffmpeg_pipe(struct ffmpeg_data *data, char *args[]) {
         // If this part of the code is executed, it means that execvp failed.
         log("ffmpeg command failed");
         audiosync_abort();
-        goto finish;
+        return -1;
     }
 
     // Parent process (reading the output pipe), doesn't write.
@@ -72,7 +77,7 @@ int ffmpeg_pipe(struct ffmpeg_data *data, char *args[]) {
         if (read_bytes < 0) {
             perror("audiosync: read for wav_pipe failed");
             audiosync_abort();
-            goto finish;
+            return -1;
         }
 
         data->len += read_bytes / sizeof(*(data->buf));
@@ -98,7 +103,7 @@ int ffmpeg_pipe(struct ffmpeg_data *data, char *args[]) {
             log("read ABORT_ST, quitting...");
             kill(pid, SIGKILL);
             wait(NULL);
-            goto finish;
+            return 0;
         case PAUSED_ST:
             // Suspending the ffmpeg process with a SIGSTOP until the
             // global status is changed from PAUSED_ST.
@@ -117,7 +122,7 @@ int ffmpeg_pipe(struct ffmpeg_data *data, char *args[]) {
                 log("read ABORT_ST after pause, quitting...");
                 kill(pid, SIGKILL);
                 wait(NULL);
-                goto finish;
+                return 0;
             }
 
             log("resuming ffmpeg");
@@ -145,8 +150,5 @@ int ffmpeg_pipe(struct ffmpeg_data *data, char *args[]) {
     close(wav_pipe[PIPE_RD]);
     wait(NULL);
 
-    ret = 0;
-
-finish:
-    return ret;
+    return 0;
 }

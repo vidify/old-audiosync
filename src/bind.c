@@ -1,9 +1,8 @@
 // This file defines the Python bindings for the audiosync C extension.
 //
 // It's fairly straightforward, since all it does is convert the C types
-// to Python and vice versa, so that audiosync can be used, and the
-// returned values can be used from Python. The defined functions will behave
-// the same as if they were used in C.
+// to Python and vice versa, so that audiosync's C functions can be used.
+// The defined functions will behave the same, as if they were used in C.
 
 #define PY_SSIZE_T_CLEAN
 #include <Python.h>

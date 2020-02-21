@@ -11,6 +11,11 @@
 #define MAX_LONG_COMMAND 4086
 
 
+// Function used for the download thread. In this case, it both obtains the
+// direct youtube link to download the audio from, and creates a new
+// pulseaudio process to save it inside the thread's data.
+//
+// In case of error, it will signal the main thread to abort.
 void *download(void *arg) {
     struct ffmpeg_data *data = arg;
     log("starting download thread");
@@ -42,8 +47,7 @@ finish:
     pthread_exit(NULL);
 }
 
-
-// Obtains the audio direct link with Youtube-dl.
+// Obtains the YouTube audio link with Youtube-dl.
 //
 // Returns 0 on exit, or -1 on error.
 int get_audio_url(char *title, char **url) {
