@@ -27,7 +27,7 @@ setup(
     long_description=open('README.md', 'r').read(),
     long_description_content_type='text/markdown',
     url='https://github.com/marioortizmanero/vidify-audiosync',
-    license='MIT',
+    license='LGPL',
 
     author='Mario O.M.',
     author_email='marioortizmanero@gmail.com',
@@ -35,10 +35,11 @@ setup(
     maintainer_email='marioortizmanero@gmail.com',
 
     classifiers=[
-        'Development Status :: 2 - Pre-Alpha',
+        'Development Status :: 3 - Alpha',
         'Intended Audience :: End Users/Desktop',
         'Topic :: Multimedia :: Sound/Audio :: Analysis',
-        'License :: OSI Approved :: MIT License',
+        'License :: OSI Approved :: GNU Lesser General Public License v3'
+        ' (LGPLv3)',
         'Programming Language :: C'
     ],
     keywords='audio synchronization cross-correlation pearson coefficient fft'
