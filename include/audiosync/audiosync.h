@@ -26,7 +26,8 @@
 // Easily and consistently printing logs to stderr.
 // The ## notation will ignore __VA_ARGS__ if no extra arguments were passed
 // when calling the macro. This idiom will only work on gcc and clang.
-#define log(str, ...) fprintf(stderr, "audiosync: " str "\n", ##__VA_ARGS__)
+#define log(str, ...) \
+    fprintf(stderr, "\x1B[36m""audiosync:""\x1B[0m"" " str "\n", ##__VA_ARGS__)
 
 // Assertion that only takes place in debug mode. It helps prevent errors,
 // while not affecting performance in a release.
