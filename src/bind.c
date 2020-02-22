@@ -54,8 +54,8 @@ static PyMethodDef VidifyAudiosyncMethods[] = {
         "setup",
         audiosyncmodule_setup,
         METH_VARARGS,
-        "Attempts to initialize PulseAudio to record more easily the audio"
-        " directly from the music player stream. Not thread-safe."
+        "Attempts to initialize a PulseAudio sink to record more easily the"
+        " audio directly from the music player stream. Not thread-safe."
     },
     {NULL, NULL, 0, NULL}
 };

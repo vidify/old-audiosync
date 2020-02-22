@@ -22,11 +22,23 @@ It's also available on the AUR for Arch Linux users as [`vidify-audiosync`](http
 
 
 ## Usage
-The main function is `int audiosync_run(char* title, long *lag)`, which returns the displacement between the two audio sources (positive or negative). `title` is the full YouTube link that the recorded audio will be compared to. After this function has been called, its progress can be monitored and controlled with the following self-explainatory functions: `global_status_t audiosync_status()`, `void audiosync_resume()`, `void audiosync_pause()` and `void audiosync_abort()`. This interface is also available from the Python bindings, which have the same names, but inside a module (for example `audiosync.run()`).
+This README is a guide oriented for developing. Please check out the [Vidify guide](https://github.com/vidify/vidify#audio-synchronization) for more information about how to use it with Vidify.
+
+Audiosync's main function is `audiosync.run(title: str) -> int, bool`. It will return the displacement between the two audio sources (positive or negative), which will only be valid if the returned boolean is true. `title` is the track's title to search for in YouTube.
+
+After this function has been called, its progress can be monitored and controlled with other exported functions. Here's a brief introduction to all of them:
+
+* `audiosync.status() -> str`: returns the current job's status as a string.
+* `audiosync.resume() -> None`: continue the audiosync job. This has no effect if it's not paused.
+* `audiosync.pause() -> None`: pause the audiosync job.
+* `audiosync.abort() -> None`: abort the audiosync job.
+* `audiosync.setup(stream_name: str) -> None`: attempts to initialize a dedicated PulseAudio sink to record more easily the audio directly from the music player stream.
+
+This interface is also available from the C library. You can read more details about these exported functions in the [include/audiosync.h header](https://github.com/vidify/audiosync/blob/master/include/audiosync/audiosync.h), and its implementation in [src/audiosync.c](https://github.com/vidify/audiosync/blob/master/src/audiosync.c).
 
 There are 2 apps to try:
 
-* `apps/main.c`: used to debug more easily from the native language. You can run it with:
+* `apps/main.c`: used to debug more easily with C. You can run it with:
 
 ```shell
 mkdir build
@@ -37,7 +49,7 @@ make -j4
 ./apps/main "SONG NAME"
 ```
 
-* `apps/main.py`: the actual module usage in Python. You can simply use `python main.py "SONG NAME"`
+* `apps/main.py`: equivalent to `apps/main.c`, but in Python. You can simply use `python main.py "SONG NAME"`.
 
 
 ## How it works
