@@ -53,9 +53,9 @@ static int use_default = 1;
 // We really only care about when it's ready or if it has failed.
 static void state_change_cb(pa_context *c, void *userdata) {
     UNUSED(c);
-	int *server_status = userdata;
+    int *server_status = userdata;
 
-	pa_context_state_t state = pa_context_get_state(c);
+    pa_context_state_t state = pa_context_get_state(c);
     if (state == PA_CONTEXT_FAILED || state == PA_CONTEXT_TERMINATED) {
         *server_status = PA_REQUEST_ERROR;
     } else if (state == PA_CONTEXT_READY) {

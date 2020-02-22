@@ -245,10 +245,6 @@ finish:
     // Signaling the rest of the threads to finish.
     audiosync_abort();
 
-    // Freeing the main resources used.
-    if (sample) free(sample);
-    if (source) fftw_free(source);
-
     // Waiting for the other threads to finish.
     if (pthread_join(cap_th, NULL) < 0) {
         perror("audiosync: pthread_join for cap_th failed");
@@ -258,6 +254,10 @@ finish:
         perror("audiosync: pthread_join for down_th failed");
         goto finish;
     }
+
+    // Freeing the main resources used previously.
+    if (sample) free(sample);
+    if (source) fftw_free(source);
 
     // Resetting the global status at the end.
     global_status = IDLE_ST;
