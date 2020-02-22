@@ -71,8 +71,8 @@ static size_t max_abs_index(double *arr, size_t len) {
 // https://en.wikipedia.org/wiki/Pearson_correlation_coefficient#For_a_sample
 //
 // This function will only work correctly if end - start != 0.
-double pearson_coefficient(double *source_start, double *source_end,
-                           double *sample_start, double *sample_end) {
+double pearson_coefficient(double *source_start, const double *source_end,
+                           double *sample_start, const double *sample_end) {
     debug_assert(source_start); debug_assert(source_end);
     debug_assert(source_end - source_start > 0);
     debug_assert(sample_start); debug_assert(sample_end);

@@ -140,7 +140,7 @@ static void find_stream_cb(pa_context *c, const pa_sink_input_info *i, int eol, 
 // Note: PulseAudio asynchronously handles all the requests, so this mainloop
 // structure is needed to handle the states one by one. See the
 // loop_state_t enum for a description of each step followed.
-int pulseaudio_setup(char *name) {
+int pulseaudio_setup(const char *name) {
     // Saving the stream name as a global variable so that it can be accessed
     // within the callback functions.
     strcpy(stream_name, name);

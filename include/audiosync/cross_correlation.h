@@ -7,8 +7,8 @@
 // https://en.wikipedia.org/wiki/Pearson_correlation_coefficient#For_a_sample
 //
 // This function will only work correctly if end - start != 0.
-double pearson_coefficient(double *source_start, double *source_end,
-                           double *sample_start, double *sample_end);
+double pearson_coefficient(double *source_start, const double *source_end,
+                           double *sample_start, const double *sample_end);
 
 // Calculating the cross-correlation between two signals `a` and `b`:
 //     xcross = ifft(fft(a) * conj(fft(b)))

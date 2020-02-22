@@ -18,4 +18,4 @@ void *capture(void *);
 //
 // This function will return 0 if it ran successfully, or -1 in case something
 // went wrong.
-int pulseaudio_setup(char *stream_name);
+int pulseaudio_setup(const char *stream_name);

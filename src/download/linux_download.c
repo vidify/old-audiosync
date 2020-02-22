@@ -24,13 +24,13 @@ void *download(void *arg) {
     char *url = NULL;
     url = malloc(sizeof(*url) * MAX_LONG_URL);
     if (url == NULL) {
-        perror("url malloc failed");
         audiosync_abort();
+        perror("url malloc failed");
         goto finish;
     }
     if (get_audio_url(data->title, &url) < 0) {
-        log("could not obtain youtube url");
         audiosync_abort();
+        log("could not obtain youtube url");
         goto finish;
     }
     log("obtained youtube-dl URL for download");
@@ -50,8 +50,9 @@ finish:
 // Obtains the YouTube audio link with Youtube-dl.
 //
 // Returns 0 on exit, or -1 on error.
-int get_audio_url(char *title, char **url) {
+int get_audio_url(const char *title, char **url) {
     debug_assert(title); debug_assert(url);
+    debug_assert(strlen(title) < MAX_LONG_COMMAND - 1);
 
     // Creating the full command
     char command[MAX_LONG_COMMAND];

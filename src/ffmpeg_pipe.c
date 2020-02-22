@@ -1,7 +1,6 @@
 #define _POSIX_SOURCE  // for kill()
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 #include <pthread.h>
 #include <signal.h>
 #include <unistd.h>
@@ -30,19 +29,22 @@ int ffmpeg_pipe(struct ffmpeg_data *data, char *args[]) {
     int wav_pipe[2];
     int interval_count = 0;
     ssize_t read_bytes;
+    pid_t pid;
 
     if (pipe(wav_pipe) < 0) {
-        perror("audiosync: pipe for wav_pipe failed");
         audiosync_abort();
+        perror("audiosync: pipe for wav_pipe failed");
         return -1;
     }
 
-    pid_t pid = fork();
+    pid = fork();
     if (pid < 0) {
-        perror("audiosync: fork in read_pipe failed");
         audiosync_abort();
+        perror("audiosync: fork in read_pipe failed");
+        close(wav_pipe[PIPE_RD]); close(wav_pipe[PIPE_WR]);
         return -1;
-    } else if (pid == 0) {
+    }
+    if (pid == 0) {
         // Child process (ffmpeg), doesn't read the pipe.
         close(wav_pipe[PIPE_RD]);
 
@@ -60,14 +62,13 @@ int ffmpeg_pipe(struct ffmpeg_data *data, char *args[]) {
         execvp("ffmpeg", args);
 
         // If this part of the code is executed, it means that execvp failed.
-        log("ffmpeg command failed");
         audiosync_abort();
+        log("ffmpeg command failed");
         return -1;
     }
 
     // Parent process (reading the output pipe), doesn't write.
     close(wav_pipe[PIPE_WR]);
-
     data->len = 0;
     while (1) {
         // Reading the data from ffmpeg in chunks of size `BUFSIZE`.
@@ -76,8 +77,9 @@ int ffmpeg_pipe(struct ffmpeg_data *data, char *args[]) {
 
         // Error when trying to read
         if (read_bytes < 0) {
-            perror("audiosync: read for wav_pipe failed");
             audiosync_abort();
+            perror("audiosync: read for wav_pipe failed");
+            close(wav_pipe[PIPE_RD]);
             return -1;
         }
 
@@ -104,6 +106,7 @@ int ffmpeg_pipe(struct ffmpeg_data *data, char *args[]) {
             log("read ABORT_ST, quitting...");
             kill(pid, SIGKILL);
             wait(NULL);
+            close(wav_pipe[PIPE_RD]);
             return 0;
         case PAUSED_ST:
             // Suspending the ffmpeg process with a SIGSTOP until the
@@ -123,6 +126,7 @@ int ffmpeg_pipe(struct ffmpeg_data *data, char *args[]) {
                 log("read ABORT_ST after pause, quitting...");
                 kill(pid, SIGKILL);
                 wait(NULL);
+                close(wav_pipe[PIPE_RD]);
                 return 0;
             }
 
@@ -138,8 +142,9 @@ int ffmpeg_pipe(struct ffmpeg_data *data, char *args[]) {
     // If the track isn't long enough for every interval, the rest of the
     // data is filled with zeroes.
     if (data->len < data->total_len) {
-        memset(data->buf + data->len, 0.0,
-               sizeof(*(data->buf)) * (data->total_len - data->len));
+        for (size_t i = data->len; i < data->total_len; i++) {
+            data->buf[i] = 0.0;
+        }
         data->len = data->total_len;
         // Also sending a signal to the main thread indicating it that all the
         // intervals have been read successfully.

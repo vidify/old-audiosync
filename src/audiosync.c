@@ -129,7 +129,7 @@ char *status_to_string(global_status_t status) {
 //
 // It's possible that the setup fails, so it returns an integer which will
 // be zero on success, and negative on error.
-int audiosync_setup(char *stream_name) {
+int audiosync_setup(const char *stream_name) {
     log("setting up audiosync module");
     return pulseaudio_setup(stream_name);
 }
@@ -147,7 +147,7 @@ int audiosync_setup(char *stream_name) {
 //
 // This function starts the algorithm. Only one audiosync thread can be
 // running at once.
-int audiosync_run(char *yt_title, long *lag) {
+int audiosync_run(const char *yt_title, long *lag) {
     debug_assert(yt_title); debug_assert(lag);
     debug_assert(global_status == IDLE_ST);
 
@@ -194,13 +194,13 @@ int audiosync_run(char *yt_title, long *lag) {
         .n_intervals = N_INTERVALS,
     };
     if (pthread_create(&cap_th, NULL, &capture, (void *) &cap_args) < 0) {
-        perror("audiosync: pthread_create for cap_th failed");
         audiosync_abort();
+        perror("audiosync: pthread_create for cap_th failed");
         goto finish;
     }
     if (pthread_create(&down_th, NULL, &download, (void *) &down_args) < 0) {
-        perror("audiosync: pthread_create for down_th failed");
         audiosync_abort();
+        perror("audiosync: pthread_create for down_th failed");
         goto finish;
     }
 

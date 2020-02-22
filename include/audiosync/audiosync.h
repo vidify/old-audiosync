@@ -45,7 +45,7 @@
 
 // Structure used to pass the parameters to the threads.
 struct ffmpeg_data {
-    char *title;               // Only used to download the audio
+    const char *title;         // Only used to download the audio
     double *buf;               // Buffer with the obtained data
     size_t len;                // Current buffer's length
     const size_t total_len;    // Maximum length of the buffer
@@ -90,7 +90,7 @@ extern global_status_t audiosync_status();
 //
 // It's possible that the setup fails, so it returns an integer which will
 // be zero on success, and negative on error.
-extern int audiosync_setup(char *stream_name);
+extern int audiosync_setup(const char *stream_name);
 
 // Main function to start the audio synchronization algorithm. It will return
 // 0 in case of success, or -1 otherwise. `yt_title` is the name of the song
@@ -105,4 +105,4 @@ extern int audiosync_setup(char *stream_name);
 //
 // This function starts the algorithm. Only one audiosync thread can be
 // running at once.
-extern int audiosync_run(char *yt_title, long int *lag);
+extern int audiosync_run(const char *yt_title, long int *lag);

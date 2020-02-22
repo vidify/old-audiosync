@@ -76,6 +76,8 @@ PyMODINIT_FUNC PyInit_audiosync(void) {
 
 
 PyObject *audiosyncmodule_run(PyObject *self, PyObject *args) {
+    UNUSED(self);
+
     char *yt_title;
     if (!PyArg_ParseTuple(args, "s", &yt_title)) {
         return NULL;
@@ -93,6 +95,8 @@ PyObject *audiosyncmodule_run(PyObject *self, PyObject *args) {
 
 
 PyObject *audiosyncmodule_pause(PyObject *self, PyObject *args) {
+    UNUSED(self); UNUSED(args);
+
     Py_BEGIN_ALLOW_THREADS
     audiosync_pause();
     Py_END_ALLOW_THREADS
@@ -102,6 +106,8 @@ PyObject *audiosyncmodule_pause(PyObject *self, PyObject *args) {
 
 
 PyObject *audiosyncmodule_resume(PyObject *self, PyObject *args) {
+    UNUSED(self); UNUSED(args);
+
     Py_BEGIN_ALLOW_THREADS
     audiosync_resume();
     Py_END_ALLOW_THREADS
@@ -111,6 +117,8 @@ PyObject *audiosyncmodule_resume(PyObject *self, PyObject *args) {
 
 
 PyObject *audiosyncmodule_abort(PyObject *self, PyObject *args) {
+    UNUSED(self); UNUSED(args);
+
     Py_BEGIN_ALLOW_THREADS
     audiosync_abort();
     Py_END_ALLOW_THREADS
@@ -119,6 +127,8 @@ PyObject *audiosyncmodule_abort(PyObject *self, PyObject *args) {
 }
 
 PyObject *audiosyncmodule_status(PyObject *self, PyObject *args) {
+    UNUSED(self); UNUSED(args);
+
     global_status_t status;
     char *str;
 
@@ -131,6 +141,8 @@ PyObject *audiosyncmodule_status(PyObject *self, PyObject *args) {
 }
 
 PyObject *audiosyncmodule_setup(PyObject *self, PyObject *args) {
+    UNUSED(self);
+
     char *name;
     if (!PyArg_ParseTuple(args, "s", &name)) {
         return NULL;

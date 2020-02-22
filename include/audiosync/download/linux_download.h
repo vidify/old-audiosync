@@ -10,4 +10,4 @@ void *download(void *);
 // Obtains the YouTube audio link with Youtube-dl.
 //
 // Returns 0 on exit, or -1 on error.
-int get_audio_url(char *title, char **url);
+int get_audio_url(const char *title, char **url);
