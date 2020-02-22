@@ -18,7 +18,7 @@ static pthread_mutex_t cc_mutex = PTHREAD_MUTEX_INITIALIZER;
 struct fftw_data {
     double *real;
     double complex *cpx;
-    size_t len;
+    const size_t len;
 };
 
 
@@ -137,13 +137,16 @@ int cross_correlation(double *source, double *input_sample,
     debug_assert(lag); debug_assert(coefficient);
     debug_assert(sample_len > 0);
 
+    int ret = -1;
+    const size_t source_len = sample_len * 2;
+    const size_t cpx_len = (source_len / 2) + 1;
     double *sample = NULL;
     double *results = NULL;
     double complex *arr1 = NULL;
     double complex *arr2 = NULL;
-    const size_t source_len = sample_len * 2;
-    const size_t cpx_len = (source_len / 2) + 1;
-    int ret = -1;
+    pthread_t fft1_th = 0;
+    pthread_t fft2_th = 0;
+    double *source_start, *source_end, *sample_start, *sample_end;
 
     // Only the sample needs to be zero-padded, since the cross correlation
     // will be circular, and only one of the inputs is shifted.
@@ -198,7 +201,6 @@ int cross_correlation(double *source, double *input_sample,
     }
 
     // Initializing the threads and starting them.
-    pthread_t fft1_th, fft2_th;
     struct fftw_data fft1_data = {
         .real = source,
         .cpx = arr1,
@@ -251,7 +253,6 @@ int cross_correlation(double *source, double *input_sample,
     //
     // Finally, the Pearson Correlation Coefficient is calculated with the
     // resulting segment of data.
-    double *source_start, *source_end, *sample_start, *sample_end;
     if (*lag >= (long) sample_len) {
         // Displacing the sample to the left (lag is negative), final size
         // is sample_len - lag.

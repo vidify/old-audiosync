@@ -150,6 +150,16 @@ int pulseaudio_setup(char *name) {
     pa_mainloop_api *mainloop_api = NULL;
     pa_operation *op = NULL;
     pa_context *context = NULL;
+    // To keep track of the requests
+    loop_state_t state = LOOP_CHECK_SINK;
+    request_state_t server_status;
+    // Variable assigned after the music player's stream index has been found
+    // so that it can be moved to the new sink.
+    uint32_t stream_index = PA_INVALID_INDEX;
+    // This function's return value.
+    int ret = -1;
+    // Used to check if the audiosync monitor already exists.
+    int sink_exists = 0;
 
     // Create a mainloop API and connection to the default server
     if ((mainloop = pa_mainloop_new()) == NULL) {
@@ -170,18 +180,8 @@ int pulseaudio_setup(char *name) {
     // Our callback will wait for the state to be ready. The callback will
     // modify the variable so we know when we have a connection and it's
     // ready or when it has failed.
-    request_state_t server_status = PA_REQUEST_NOT_READY;
+    server_status = PA_REQUEST_NOT_READY;
     pa_context_set_state_callback(context, state_change_cb, &server_status);
-
-    // To keep track of our requests
-    loop_state_t state = LOOP_CHECK_SINK;
-    // Variable assigned after the music player's stream index has been found
-    // so that it can be moved to the new sink.
-    uint32_t stream_index = PA_INVALID_INDEX;
-    // This function's return value.
-    int ret = -1;
-    // Used to check if the audiosync monitor already exists.
-    int sink_exists = 0;
     while (1) {
         // Checking the status of the PulseAudio server before sending any
         // requests.
@@ -363,8 +363,7 @@ void *capture(void *arg) {
     // Finally starting to record the audio with ffmpeg. If the setup function
     // was called and it was successful, the audiosync monitor is used.
     // Otherwise, the default monitor will record the entire device audio.
-    log("using %s for capture",
-        use_default ? "default monitor" : "custom monitor");
+    log("using %s monitor for capture", use_default ? "default" : "custom");
     char *args[] = {
         "ffmpeg", "-y", "-to", MAX_SECONDS_STR, "-f", "pulse", "-i",
         use_default ? "default" : (SINK_NAME ".monitor"), "-ac",

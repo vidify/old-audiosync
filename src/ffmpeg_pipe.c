@@ -28,6 +28,9 @@ int ffmpeg_pipe(struct ffmpeg_data *data, char *args[]) {
     debug_assert(data->intervals[data->n_intervals-1] == data->total_len);
 
     int wav_pipe[2];
+    int interval_count = 0;
+    ssize_t read_bytes;
+
     if (pipe(wav_pipe) < 0) {
         perror("audiosync: pipe for wav_pipe failed");
         audiosync_abort();
@@ -65,8 +68,6 @@ int ffmpeg_pipe(struct ffmpeg_data *data, char *args[]) {
     // Parent process (reading the output pipe), doesn't write.
     close(wav_pipe[PIPE_WR]);
 
-    int interval_count = 0;
-    ssize_t read_bytes;
     data->len = 0;
     while (1) {
         // Reading the data from ffmpeg in chunks of size `BUFSIZE`.

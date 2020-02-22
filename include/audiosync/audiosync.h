@@ -47,8 +47,8 @@
 struct ffmpeg_data {
     char *title;               // Only used to download the audio
     double *buf;               // Buffer with the obtained data
-    size_t total_len;          // Maximum length of the buffer
     size_t len;                // Current buffer's length
+    const size_t total_len;    // Maximum length of the buffer
     const size_t *intervals;   // Intervals in which the data will be obtained
     const size_t n_intervals;  // Maximum number of intervals
 };

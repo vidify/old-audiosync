@@ -157,6 +157,9 @@ int audiosync_run(char *yt_title, long *lag) {
     double *sample = NULL;
     double *source = NULL;
     double confidence;
+    // Threading variables
+    pthread_t cap_th = 0;
+    pthread_t down_th = 0;
 
     // Allocated dynamically because the stack doesn't have enough memory.
     sample = malloc(LEN_SAMPLE * sizeof(*sample));
@@ -173,11 +176,9 @@ int audiosync_run(char *yt_title, long *lag) {
         goto finish;
     }
 
-    // Launching the threads and initializing the mutex and condition
-    // variables.
-    pthread_t down_th, cap_th;
+    // Initializing thread-related variables, and starting them.
     struct ffmpeg_data cap_args = {
-        .title = yt_title,
+        .title = "",
         .buf = sample,
         .total_len = LEN_SAMPLE,
         .len = 0,
