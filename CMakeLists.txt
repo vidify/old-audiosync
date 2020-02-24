@@ -5,7 +5,7 @@
 
 cmake_minimum_required(VERSION 3.10)
 project(VidifyAudiosync
-        VERSION 0.1
+        VERSION 0.2
         DESCRIPTION "A vidify extension to sync audio from YouTube and your PC"
         LANGUAGES C)
 
