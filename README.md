@@ -19,6 +19,7 @@ Audiosync is currently only available on Linux. The requirements are:
 You can install the module with pip: `pip3 install vidify-audiosync --user`.
 
 It's also available on the AUR for Arch Linux users as [`vidify-audiosync`](https://aur.archlinux.org/packages/vidify-audiosync/).
+And in the [GURU overlay](https://wiki.gentoo.org/wiki/Project:GURU) for Gentoo Linux users as [media-video/vidify-audiosync](https://gpo.zugaina.org/media-video/vidify-audiosync): `eselect repository enable guru && emerge --sync guru && emerge vidify-audiosync`
 
 
 ## Usage
