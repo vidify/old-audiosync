@@ -18,7 +18,7 @@
 // In case of error, it will signal the main thread to abort.
 void *download(void *arg) {
     struct ffmpeg_data *data = arg;
-    log("starting download thread");
+    LOG("starting download thread");
 
     // Obtaining the youtube-dl direct URL to download.
     char *url = NULL;
@@ -30,10 +30,10 @@ void *download(void *arg) {
     }
     if (get_audio_url(data->title, &url) < 0) {
         audiosync_abort();
-        log("could not obtain youtube url");
+        LOG("could not obtain youtube url");
         goto finish;
     }
-    log("obtained youtube-dl URL for download");
+    LOG("obtained youtube-dl URL for download");
 
     // Finally downloading the track data with ffmpeg.
     char *args[] = {
@@ -51,8 +51,8 @@ finish:
 //
 // Returns 0 on exit, or -1 on error.
 int get_audio_url(const char *title, char **url) {
-    debug_assert(title); debug_assert(url);
-    debug_assert(strlen(title) < MAX_LONG_COMMAND - 1);
+    DEBUG_ASSERT(title); DEBUG_ASSERT(url);
+    DEBUG_ASSERT(strlen(title) < MAX_LONG_COMMAND - 1);
 
     // Creating the full command
     char command[MAX_LONG_COMMAND];

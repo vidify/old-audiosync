@@ -26,7 +26,7 @@ struct fftw_data {
 static void *fft(void *arg) {
     // Getting the parameters passed to this thread
     struct fftw_data *data = arg;
-    debug_assert(data); debug_assert(data->real); debug_assert(data->cpx);
+    DEBUG_ASSERT(data); DEBUG_ASSERT(data->real); DEBUG_ASSERT(data->cpx);
 
     // Initializing the plan: the only thread-safe call in FFTW is
     // fftw_execute, so the plan has to be created and destroyed with a lock.
@@ -50,7 +50,7 @@ static void *fft(void *arg) {
 //
 // Its length must be greater than zero to work correctly.
 static size_t max_abs_index(double *arr, size_t len) {
-    debug_assert(arr); debug_assert(len > 0);
+    DEBUG_ASSERT(arr); DEBUG_ASSERT(len > 0);
 
     double abs_val;
     double max_val = arr[0];
@@ -73,10 +73,10 @@ static size_t max_abs_index(double *arr, size_t len) {
 // This function will only work correctly if end - start != 0.
 double pearson_coefficient(double *source_start, const double *source_end,
                            double *sample_start, const double *sample_end) {
-    debug_assert(source_start); debug_assert(source_end);
-    debug_assert(source_end - source_start > 0);
-    debug_assert(sample_start); debug_assert(sample_end);
-    debug_assert(sample_end - sample_start > 0);
+    DEBUG_ASSERT(source_start); DEBUG_ASSERT(source_end);
+    DEBUG_ASSERT(source_end - source_start > 0);
+    DEBUG_ASSERT(sample_start); DEBUG_ASSERT(sample_end);
+    DEBUG_ASSERT(sample_end - sample_start > 0);
 
     // 1. The average for both datasets.
     double sum1 = 0.0;
@@ -133,9 +133,9 @@ double pearson_coefficient(double *source_start, const double *source_end,
 int cross_correlation(double *source, double *input_sample,
                       const size_t sample_len, long *lag,
                       double *coefficient) {
-    debug_assert(source); debug_assert(input_sample);
-    debug_assert(lag); debug_assert(coefficient);
-    debug_assert(sample_len > 0);
+    DEBUG_ASSERT(source); DEBUG_ASSERT(input_sample);
+    DEBUG_ASSERT(lag); DEBUG_ASSERT(coefficient);
+    DEBUG_ASSERT(sample_len > 0);
 
     int ret = -1;
     const size_t source_len = sample_len * 2;
@@ -167,7 +167,7 @@ int cross_correlation(double *source, double *input_sample,
 
 #ifdef PLOT
     // Plotting the output with gnuplot
-    log("Saving initial plot to '%ld_original.png'", source_len);
+    LOG("Saving initial plot to '%ld_original.png'", source_len);
     FILE *gnuplot = popen("gnuplot", "w");
     fprintf(gnuplot, "set term 'png'\n");
     fprintf(gnuplot, "set output 'images/%ld_original.png'\n", source_len);
@@ -275,11 +275,11 @@ int cross_correlation(double *source, double *input_sample,
     // Checking that the resulting coefficient isn't NaN.
     if (*coefficient != *coefficient) goto finish;
 
-    log("%ld frames of delay with a confidence of %f", *lag, *coefficient);
+    LOG("%ld frames of delay with a confidence of %f", *lag, *coefficient);
 
 #ifdef PLOT
     // Plotting the output with gnuplot
-    log("Saving plot to '%ld.png'", source_len);
+    LOG("Saving plot to '%ld.png'", source_len);
     gnuplot = popen("gnuplot", "w");
     fprintf(gnuplot, "set term 'png'\n");
     fprintf(gnuplot, "set output 'images/%ld.png'\n", source_len);

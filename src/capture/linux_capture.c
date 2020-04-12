@@ -163,16 +163,16 @@ int pulseaudio_setup(const char *name) {
 
     // Create a mainloop API and connection to the default server
     if ((mainloop = pa_mainloop_new()) == NULL) {
-        log("pa_mainloop_new failed");
+        LOG("pa_mainloop_new failed");
         goto error;
     }
     mainloop_api = pa_mainloop_get_api(mainloop);
     if ((context = pa_context_new(mainloop_api, SINK_NAME)) == NULL) {
-        log("pa_context_new failed");
+        LOG("pa_context_new failed");
         goto error;
     }
     if (pa_context_connect(context, NULL, 0, NULL) < 0) {
-        log("pa_context_connect failed");
+        LOG("pa_context_connect failed");
         goto error;
     }
 
@@ -189,7 +189,7 @@ int pulseaudio_setup(const char *name) {
             // We can't do anything until PA is ready, so just iterate the
             // mainloop and continue.
             if (pa_mainloop_iterate(mainloop, 1, NULL) < 0) {
-                log("pa_mainloop_iterate failed");
+                LOG("pa_mainloop_iterate failed");
                 goto error;
             }
             continue;
@@ -197,7 +197,7 @@ int pulseaudio_setup(const char *name) {
 
         if (server_status == PA_REQUEST_ERROR) {
             // Error connecting to the server.
-            log("error when connecting to the server.");
+            LOG("error when connecting to the server.");
             ret = -1;
             goto error;
         }
@@ -224,14 +224,14 @@ int pulseaudio_setup(const char *name) {
                 // already exists, then it's reused, and it skips to the
                 // last step related to creating the sink.
                 if (sink_exists) {
-                    log("found custom monitor, reusing it");
+                    LOG("found custom monitor, reusing it");
                     op = pa_context_get_sink_input_info_list(
                         context, find_stream_cb, &stream_index);
                     state = LOOP_MOVE_STREAM;
                     break;
                 }
 
-                log("no custom monitor found, creating a new one");
+                LOG("no custom monitor found, creating a new one");
                 op = pa_context_load_module(
                     context, "module-null-sink", "sink_name=" SINK_NAME
                     " sink_properties=device.description=" SINK_NAME,
@@ -251,13 +251,13 @@ int pulseaudio_setup(const char *name) {
                 // Checking the returned value by the previous state's module
                 // load.
                 if (ret < 0) {
-                    log("module-null-sink failed to load");
+                    LOG("module-null-sink failed to load");
                     goto error;
                 }
 
                 // latency_msec is needed so that the virtual sink's audio is
                 // synchronized with the desktop audio (disables the delay).
-                log("loading loopback on the new sink");
+                LOG("loading loopback on the new sink");
                 op = pa_context_load_module(
                     context, "module-loopback", "source=" SINK_NAME ".monitor"
                     " latency_msec=1", load_module_cb, &ret);
@@ -273,11 +273,11 @@ int pulseaudio_setup(const char *name) {
                 pa_operation_unref(op);
 
                 if (ret < 0) {
-                    log("module-loopback failed to load");
+                    LOG("module-loopback failed to load");
                     goto error;
                 }
 
-                log("looking for the provided stream");
+                LOG("looking for the provided stream");
                 op = pa_context_get_sink_input_info_list(
                     context, find_stream_cb, &stream_index);
 
@@ -292,12 +292,12 @@ int pulseaudio_setup(const char *name) {
                 pa_operation_unref(op);
 
                 if (stream_index == PA_INVALID_INDEX) {
-                    log("application stream couldn't be found");
+                    LOG("application stream couldn't be found");
                     ret = -1;
                     goto error;
                 }
 
-                log("moving the found stream");
+                LOG("moving the found stream");
                 op = pa_context_move_sink_input_by_name(
                     context, stream_index, SINK_NAME, operation_cb, &ret);
 
@@ -311,7 +311,7 @@ int pulseaudio_setup(const char *name) {
                 pa_operation_unref(op);
 
                 if (ret < 0) {
-                    log("failed to move the streams");
+                    LOG("failed to move the streams");
                     goto error;
                 }
 
@@ -321,7 +321,7 @@ int pulseaudio_setup(const char *name) {
 
         default:
             // Unexpected state
-            log("unexpected state %d", state);
+            LOG("unexpected state %d", state);
             ret = -1;
             goto error;
         }
@@ -329,7 +329,7 @@ int pulseaudio_setup(const char *name) {
         // Performing the next iteration. The second argument indicates to
         // block until something is ready to be done.
         if (pa_mainloop_iterate(mainloop, 1, NULL) < 0) {
-            log("pa_mainloop_iterate failed");
+            LOG("pa_mainloop_iterate failed");
             goto error;
         }
     }
@@ -358,12 +358,12 @@ error:
 // In case of errors, it will signal the main thread to abort.
 void *capture(void *arg) {
     struct ffmpeg_data *data = arg;
-    log("starting capture thread");
+    LOG("starting capture thread");
 
     // Finally starting to record the audio with ffmpeg. If the setup function
     // was called and it was successful, the audiosync monitor is used.
     // Otherwise, the default monitor will record the entire device audio.
-    log("using %s monitor for capture", use_default ? "default" : "custom");
+    LOG("using %s monitor for capture", use_default ? "default" : "custom");
     char *args[] = {
         "ffmpeg", "-y", "-to", MAX_SECONDS_STR, "-f", "pulse", "-i",
         use_default ? "default" : (SINK_NAME ".monitor"), "-ac",
