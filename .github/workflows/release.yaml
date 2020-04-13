@@ -6,6 +6,20 @@ on:
       - 'v*'
 
 jobs:
+  release:
+      name: Create Release
+      runs-on: ubuntu-latest
+      steps:
+        - name: Checkout code
+          uses: actions/checkout@v2
+
+        - name: Uploading Release Assets
+          uses: softprops/action-gh-release@v1
+          with:
+            body: ""
+          env:
+            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   pypi:
       name: Upload to PyPi
       runs-on: ubuntu-latest
