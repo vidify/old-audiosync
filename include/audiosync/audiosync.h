@@ -23,25 +23,18 @@
 // The minimum cross-correlation coefficient accepted.
 #define MIN_CONFIDENCE 0.95
 
-// Easily and consistently printing logs to stderr.
-// The ## notation will ignore __VA_ARGS__ if no extra arguments were passed
-// when calling the macro. This idiom will only work on gcc and clang.
-#define LOG(str, ...) \
-    fprintf(stderr, "\x1B[36m""audiosync:""\x1B[0m"" " str "\n", ##__VA_ARGS__)
-
 // Assertion that only takes place in debug mode. It helps prevent errors,
 // while not affecting performance in a release.
-#ifdef DEBUG
-# define DEBUG_ASSERT(x) assert(x)
-#else
+#ifdef NDEBUG
 # define DEBUG_ASSERT(x) do {} while(0)
+#else
+# define DEBUG_ASSERT(x) assert(x)
 #endif
 
 // Easily ignoring warnings about unused variables. Some functions in this
 // module are callbacks, meaning that the parameters are required, but not all
-// of them have to be used obligatorily. This is useful for these cases.
+// of them have to be used mandatorily.
 #define UNUSED(x) (void)(x)
-
 
 // Structure used to pass the parameters to the threads.
 struct ffmpeg_data {
@@ -81,6 +74,24 @@ extern void audiosync_abort();
 extern void audiosync_pause();
 extern void audiosync_resume();
 extern global_status_t audiosync_status();
+
+// The debug mode can also be configured as a boolean, atomically.
+extern volatile int global_debug;
+extern int audiosync_get_debug();
+extern void audiosync_set_debug(int do_debug);
+
+// Easily and consistently printing logs to stderr.
+#define DEBUG_COLOR "\x1B[36m"
+#define END_COLOR "\x1B[0m"
+// The ## notation will ignore __VA_ARGS__ if no extra arguments were passed
+// when calling the macro. This idiom will only work on gcc and clang.
+#define LOG(str, ...) \
+    do { \
+        if (global_debug) { \
+            fprintf(stderr, DEBUG_COLOR "audiosync: " END_COLOR str "\n", \
+                    ##__VA_ARGS__); \
+        } \
+    } while (0);
 
 // The setup function is optional. It will initialize the PulseAudio sink to
 // later record the media player output directly, rather than the entire

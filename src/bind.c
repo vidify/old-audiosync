@@ -14,6 +14,8 @@ PyObject *audiosyncmodule_resume(PyObject *self, PyObject *args);
 PyObject *audiosyncmodule_abort(PyObject *self, PyObject *args);
 PyObject *audiosyncmodule_status(PyObject *self, PyObject *args);
 PyObject *audiosyncmodule_setup(PyObject *self, PyObject *args);
+PyObject *audiosyncmodule_set_debug(PyObject *self, PyObject *args);
+PyObject *audiosyncmodule_get_debug(PyObject *self, PyObject *args);
 PyObject *audiosyncmodule_run(PyObject *self, PyObject *args);
 
 
@@ -56,6 +58,18 @@ static PyMethodDef VidifyAudiosyncMethods[] = {
         METH_VARARGS,
         "Attempts to initialize a PulseAudio sink to record more easily the"
         " audio directly from the music player stream. Not thread-safe."
+    },
+    {
+        "get_debug",
+        audiosyncmodule_get_debug,
+        METH_NOARGS,
+        "Returns audiosync's debug level. Thread-safe."
+    },
+    {
+        "set_debug",
+        audiosyncmodule_set_debug,
+        METH_VARARGS,
+        "Sets audiosync's debug level. Thread-safe."
     },
     {NULL, NULL, 0, NULL}
 };
@@ -154,4 +168,22 @@ PyObject *audiosyncmodule_setup(PyObject *self, PyObject *args) {
     Py_END_ALLOW_THREADS
 
     return Py_BuildValue("O", ret == 0 ? Py_True : Py_False);
+}
+
+PyObject *audiosyncmodule_get_debug(PyObject *self, PyObject *args) {
+    UNUSED(self); UNUSED(args);
+
+    return Py_BuildValue("O", audiosync_get_debug() ? Py_True : Py_False);
+}
+
+PyObject *audiosyncmodule_set_debug(PyObject *self, PyObject *args) {
+    UNUSED(self);
+
+    int do_debug;
+    if (!PyArg_ParseTuple(args, "i", &do_debug)) {
+        return NULL;
+    }
+    audiosync_set_debug(do_debug);
+
+    Py_RETURN_NONE;
 }

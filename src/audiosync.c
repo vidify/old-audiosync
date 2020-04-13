@@ -34,6 +34,7 @@
 
 // Defining the global variables from audiosync.h
 volatile global_status_t global_status = IDLE_ST;
+volatile int global_debug = 0;
 // If audiosync_abort or similar functions are called before audiosync_run,
 // nothing will happen, because the mutex and conditiona are initialized
 // already.
@@ -103,6 +104,21 @@ global_status_t audiosync_status() {
     pthread_mutex_unlock(&mutex);
 
     return ret;
+}
+
+int audiosync_get_debug() {
+    int ret;
+    pthread_mutex_lock(&mutex);
+    ret = global_debug;
+    pthread_mutex_unlock(&mutex);
+
+    return ret;
+}
+
+void audiosync_set_debug(int do_debug) {
+    pthread_mutex_lock(&mutex);
+    global_debug = do_debug;
+    pthread_mutex_unlock(&mutex);
 }
 
 // Converting a status enum value to a string.

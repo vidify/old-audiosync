@@ -367,7 +367,14 @@ void *capture(void *arg) {
     char *args[] = {
         "ffmpeg", "-y", "-to", MAX_SECONDS_STR, "-f", "pulse", "-i",
         use_default ? "default" : (SINK_NAME ".monitor"), "-ac",
-        NUM_CHANNELS_STR, "-r", SAMPLE_RATE_STR, "-f", "f64le", "pipe:1", NULL
+        NUM_CHANNELS_STR, "-r", SAMPLE_RATE_STR, "-f", "f64le", "pipe:1",
+        "-loglevel",
+#ifdef NDEBUG
+        "fatal",
+#else
+        "verbose",
+#endif
+        NULL
     };
     ffmpeg_pipe(data, args);
 

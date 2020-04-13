@@ -12,11 +12,11 @@ project(VidifyAudiosync
 LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 # Debug configuration
-set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -Wall -Wextra -g3 -DDEBUG \
+set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -Wall -Wextra -g3 \
                          -fsanitize=undefined -fsanitize=address")
 # Release configuration
 set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -Wall -Wextra -O3 \
-                           -fno-finite-math-only")
+                           -NDEBUG -fno-finite-math-only")
 
 # Finding the required packages.
 find_package(FFTW REQUIRED)

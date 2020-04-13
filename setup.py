@@ -2,10 +2,7 @@ from setuptools import setup, Extension
 
 
 args = ['-fno-finite-math-only']
-defines = []
-
-# "Debug mode" flags by uncommenting them
-# defines.append(('DEBUG', '1'))
+defines = [('NDEBUG', '1')]
 
 audiosync = Extension(
     'audiosync',

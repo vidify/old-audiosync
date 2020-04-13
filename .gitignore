@@ -34,6 +34,7 @@ main
 
 # Other
 .venv/
-build/
+/build/
 *.egg-info/
 compile_commands.json
+/dist/

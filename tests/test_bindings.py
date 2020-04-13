@@ -8,6 +8,13 @@ import threading
 
 import audiosync
 
+print(">> Enabling/disabling debug mode")
+assert(not audiosync.get_debug())
+audiosync.set_debug(True)
+assert(audiosync.get_debug())
+audiosync.set_debug(False)
+assert(not audiosync.get_debug())
+audiosync.set_debug(True)
 
 print(">> Calling setup function")
 audiosync.setup("test")

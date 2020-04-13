@@ -16,6 +16,6 @@ find_library(PULSEAUDIO_LIBRARIES NAMES pulse)
 # Handle the QUIETLY and REQUIRED arguments and set PULSEAUDIO_FOUND to TRUE if
 # all listed variables are TRUE
 include (FindPackageHandleStandardArgs)
-find_package_handle_standard_args(PULSEAUDIO DEFAULT_MSG PULSEAUDIO_LIBRARIES PULSEAUDIO_INCLUDES)
+find_package_handle_standard_args(PulseAudio DEFAULT_MSG PULSEAUDIO_LIBRARIES PULSEAUDIO_INCLUDES)
 
 mark_as_advanced(PULSEAUDIO_INCLUDES PULSEAUDIO_LIBRARIES)

@@ -52,11 +52,6 @@ int ffmpeg_pipe(struct ffmpeg_data *data, char *args[]) {
         dup2(wav_pipe[PIPE_WR], 1);
         close(wav_pipe[PIPE_WR]);
 
-#ifndef DEBUG
-        // Ignoring stderr when debug mode is disabled
-        freopen("/dev/null", "w", stderr);
-#endif
-
         // ffmpeg must be available on the path for exevp to work.
         LOG("running ffmpeg command");
         execvp("ffmpeg", args);

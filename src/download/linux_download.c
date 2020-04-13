@@ -38,7 +38,14 @@ void *download(void *arg) {
     // Finally downloading the track data with ffmpeg.
     char *args[] = {
         "ffmpeg", "-y", "-to", MAX_SECONDS_STR, "-i", url, "-ac",
-        NUM_CHANNELS_STR, "-r", SAMPLE_RATE_STR, "-f", "f64le", "pipe:1", NULL
+        NUM_CHANNELS_STR, "-r", SAMPLE_RATE_STR, "-f", "f64le", "pipe:1",
+        "-loglevel",
+#ifdef NDEBUG
+        "fatal",
+#else
+        "verbose",
+#endif
+        NULL
     };
     ffmpeg_pipe(data, args);
 
