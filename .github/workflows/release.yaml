@@ -27,21 +27,18 @@ jobs:
         - name: Checkout code
           uses: actions/checkout@master
 
-        - name: Setup python
-          uses: actions/setup-python@v1
-          with:
-            python-version: 3.6
-            architecture: x64
-
-        - name: Building
+        - name: Preparing Docker image
           run: |
-            python3 -m pip install wheel
-            python3 setup.py sdist bdist_wheel
+              sudo docker build -t audiosync .
 
         - name: Uploading
           env:
             TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
             TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
           run: |
-            python3 -m pip install twine
-            python3 -m twine upload dist/*
+            sudo --preserve-env docker run \
+                --env TWINE_USERNAME --env TWINE_PASSWORD \
+                audiosync /bin/sh -c \
+                    'pip install twine; \ 
+                    python setup.py sdist bdist_wheel; \
+                    twine upload dist/vidify-audiosync-*.tar.gz'
