@@ -3,7 +3,7 @@
 <h1>Vidify Audiosync</h1>
 <span>Extension for <a href="https://github.com/vidify/vidify">Vidify</a> to <b>synchronize</b> the audio from <b>YouTube</b> and what's <b>playing on your computer</b>.</span>
 
-<a href="https://travis-ci.com/vidify/audiosync"><img alt="Build Status" src="https://travis-ci.com/vidify/audiosync.svg?branch=master"></a> <a href="https://pypi.org/project/vidify-audiosync/"><img alt="PyPi version" src="https://img.shields.io/pypi/v/vidify-audiosync"></a> <a href="https://aur.archlinux.org/packages/vidify-audiosync/"><img alt="AUR version" src="https://img.shields.io/aur/version/vidify-audiosync"></a>
+<a href="https://github.com/vidify/audiosync/actions"><img alt="CI Status" src="https://github.com/vidify/audiosync/workflows/Continuous%20Integration/badge.svg"></a> <a href="https://pypi.org/project/vidify-audiosync/"><img alt="PyPi version" src="https://img.shields.io/pypi/v/vidify-audiosync"></a> <a href="https://aur.archlinux.org/packages/vidify-audiosync/"><img alt="AUR version" src="https://img.shields.io/aur/version/vidify-audiosync"></a>
 
 <a href="images/demo.mp4"><img alt="example" src="images/demo.gif"></img></a>
 
@@ -27,13 +27,15 @@ This README is a guide oriented for developing. Please check out the [Vidify gui
 
 Audiosync's main function is `audiosync.run(title: str) -> int, bool`. It will return the displacement between the two audio sources (positive or negative), which will only be valid if the returned boolean is true. `title` is the track's title to search for in YouTube.
 
-After this function has been called, its progress can be monitored and controlled with other exported functions. Here's a brief introduction to all of them:
+After this function has been called, its progress can be monitored and controlled with other exported functions. Here's a brief description for all of them:
 
 * `audiosync.status() -> str`: returns the current job's status as a string.
 * `audiosync.resume() -> None`: continue the audiosync job. This has no effect if it's not paused.
 * `audiosync.pause() -> None`: pause the audiosync job.
 * `audiosync.abort() -> None`: abort the audiosync job.
 * `audiosync.setup(stream_name: str) -> None`: attempts to initialize a dedicated PulseAudio sink to record more easily the audio directly from the music player stream.
+* `audiosync.get_debug() -> bool`: obtain the current logging level
+* `audiosync.set_debug(do_debug: bool) -> None`: configure the logging level
 
 This interface is also available from the C library. You can read more details about these exported functions in the [include/audiosync.h header](https://github.com/vidify/audiosync/blob/master/include/audiosync/audiosync.h), and its implementation in [src/audiosync.c](https://github.com/vidify/audiosync/blob/master/src/audiosync.c).
 
@@ -89,16 +91,15 @@ To keep this module somewhat real-time, the algorithm is run in intervals. After
 You can run the project's tests with:
 
 ```
-mkdir build
-cd build
+mkdir build && cd build
 cmake .. -DBUILD_TESTING=YES
 make
 make test
 ```
 
-Use `export CFLAGS="-DPLOT=YES` to enable debugging and save plots into the images directory. You'll need `gnuplot` installed for that, and a directory named `images`.
+Use `export CFLAGS="-DPLOT=YES` to enable debugging and save plots into the images directory. You'll need `gnuplot` installed for that, and a directory named `images`. `-DCMAKE_BUILD_TYPE=Debug` enables Address Sanitizer and more helpful [debug flags](https://github.com/vidify/audiosync/blob/master/CMakeLists.txt).
 
-Use `-DCMAKE_BUILD_TYPE=Debug` to enable Address Sanitizer and more helpful [debug flags](https://github.com/vidify/audiosync/blob/master/CMakeLists.txt).
+It's recommended to use Docker to run it in a containerized environment. A simple usage example would be `sudo docker build -t audiosync . && sudo docker run -t audiosync`.
 
 Feel free to open up an issue or PR in case you have problems with the module or want to contribute. Do take in mind that this project's current status is still very early, so it's not too stable.
 
