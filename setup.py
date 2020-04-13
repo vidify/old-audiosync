@@ -18,7 +18,7 @@ audiosync = Extension(
 
 setup(
     name='vidify-audiosync',
-    version='0.2',
+    version='0.3.0',
     description='Vidify extension to synchronize a YouTube video with the'
     ' audio playing on your device.',
     long_description=open('README.md', 'r').read(),
