@@ -1,7 +1,7 @@
 <div align="center">
 
 <h1>Vidify Audiosync</h1>
-<h2><b>This feature is being replaced by https://github.com/vidify/audiosync-rs</b></h2>
+<h2><b>This feature is being replaced by https://github.com/vidify/vidify/tree/master/src/audiosync</b></h2>
 <span>Extension for <a href="https://github.com/vidify/vidify">Vidify</a> to <b>synchronize</b> the audio from <b>YouTube</b> and what's <b>playing on your computer</b>.</span>
 
 <a href="https://github.com/vidify/audiosync/actions"><img alt="CI Status" src="https://github.com/vidify/audiosync/workflows/Continuous%20Integration/badge.svg"></a> <a href="https://pypi.org/project/vidify-audiosync/"><img alt="PyPi version" src="https://img.shields.io/pypi/v/vidify-audiosync"></a> <a href="https://aur.archlinux.org/packages/vidify-audiosync/"><img alt="AUR version" src="https://img.shields.io/aur/version/vidify-audiosync"></a>
